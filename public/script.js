@@ -1,292 +1,406 @@
-// Connect to Socket.IO
+// Initialize Socket.IO connection
 const socket = io();
 
-// DOM Elements
-const welcomeScreen = document.getElementById("welcomeScreen");
-const chatScreen = document.getElementById("chatScreen");
-const welcomeForm = document.getElementById("welcomeForm");
-const usernameInput = document.getElementById("usernameInput");
-const shuffleBtn = document.getElementById("shuffleBtn");
-const continueBtn = document.getElementById("continueBtn");
-const genderOptions = document.querySelectorAll(".gender-option");
-const lookingForOptions = document.querySelectorAll("#lookingForOptions .gender-option");
-const municipalitySelect = document.getElementById("municipalitySelect");
-const interestsGrid = document.getElementById("interestsGrid");
-const displayUsername = document.getElementById("displayUsername");
-const displayGender = document.getElementById("displayGender");
-const userMunicipality = document.getElementById("userMunicipality");
-const userInterests = document.getElementById("userInterests");
-const backBtn = document.getElementById("backBtn");
-const startBtn = document.getElementById("startBtn");
-const messagesArea = document.getElementById("messagesArea");
-const messageInput = document.getElementById("messageInput");
-const sendBtn = document.getElementById("sendBtn");
-const inputArea = document.getElementById("inputArea");
-const replyingToContainer = document.getElementById("replyingTo");
-const replyText = document.getElementById("replyText");
-const cancelReply = document.getElementById("cancelReply");
-const emojiTrigger = document.getElementById("emojiTrigger");
-const emojiPicker = document.getElementById("emojiPicker");
-const emojiGrid = document.getElementById("emojiGrid");
-const typingIndicator = document.getElementById("typingIndicator");
-const statusDot = document.getElementById("statusDot");
-const statusText = document.getElementById("statusText");
-const strangerName = document.getElementById("strangerName");
+// Nickname suggestions
+const NICKNAME_ADJECTIVES = ['Cool', 'Swift', 'Brave', 'Wise', 'Silent', 'Mighty', 'Gentle', 'Wild', 'Calm', 'Bold', 'Happy', 'Lucky', 'Smart', 'Quick', 'Noble'];
+const NICKNAME_NOUNS = ['Tiger', 'Eagle', 'Wolf', 'Fox', 'Panda', 'Dragon', 'Phoenix', 'Lion', 'Bear', 'Hawk', 'Falcon', 'Panther', 'Dolphin', 'Shark', 'Raven'];
 
-let selectedGender = null;
-let selectedLookingFor = null;
+// Emoji list
+const EMOJIS = ['😊', '😂', '❤️', '👍', '👏', '🔥', '✨', '🎉', '😍', '🤗', '😎', '🙌', '💯', '✅', '❌', '😢', '😭', '😡', '🤔', '😮', '😴', '🤩', '😇', '🥳', '🤪', '😜', '🙈', '🙉', '🙊', '💪', '🙏', '👌', '✌️', '🤝', '💕', '💖', '💗', '💙', '💚', '💛', '🧡', '💜', '🖤', '🤍', '🌟', '💫', '⭐', '🌈', '🌸', '🌺', '🌻', '🌹', '🍀'];
+
+// Reaction emojis for messages
+const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
+
+// Vulgar words filter
+const VULGAR_WORDS = [
+    'fuck', 'shit', 'bitch', 'ass', 'asshole', 'damn', 'hell', 'crap', 'dick', 'pussy', 'cock', 'bastard', 'slut', 'whore', 'fag', 'nigger', 'cunt',
+    'putang', 'puta', 'gago', 'tarantado', 'tanga', 'bobo', 'ulol', 'sira', 'hayop', 'tangina', 'kantot', 'tamod', 'tite', 'puke', 'bilat', 'burat', 'hinayupak', 'leche', 'peste', 'yawa', 'buwisit'
+];
+
+// State management
+let currentUser = { username: '', gender: '', lookingFor: '', municipality: '', interests: [], randomMode: false };
+let chatState = 'idle'; // idle, searching, connected
 let selectedInterests = [];
-let replyToMessageId = null;
-let username = "";
+let currentPartner = null;
+let replyToMessage = null;
+let longPressTimer = null;
+let typingTimeout = null;
+let messageReactions = {}; // {messageId: {emoji: count}}
 
-// Sample banned words
-const bannedWords = ['fuck','shit','bitch','ass','asshole','damn','hell','crap','dick','pussy','cock','bastard','slut','whore','fag','nigger','cunt','putang','puta','gago','tarantado','tanga','bobo','ulol','sira','hayop','tangina','kantot','tamod','tite','puke','bilat','burat','hinayupak','leche','peste','yawa','buwisit'];
+// DOM Elements
+const welcomeScreen = document.getElementById('welcomeScreen');
+const chatScreen = document.getElementById('chatScreen');
+const welcomeForm = document.getElementById('welcomeForm');
+const usernameInput = document.getElementById('usernameInput');
+const shuffleBtn = document.getElementById('shuffleBtn');
+const municipalitySelect = document.getElementById('municipalitySelect');
+const randomModeCheckbox = document.getElementById('randomModeCheckbox');
+const interestsGrid = document.getElementById('interestsGrid');
+const continueBtn = document.getElementById('continueBtn');
 
-// Generate random username
-function generateRandomUsername() {
-    const adjectives = ["Cool", "Crazy", "Happy", "Silent", "Fast"];
-    const nouns = ["Tiger", "Panda", "Eagle", "Shark", "Lion"];
-    return adjectives[Math.floor(Math.random() * adjectives.length)] + nouns[Math.floor(Math.random() * nouns.length)] + Math.floor(Math.random() * 100);
-}
+const displayUsername = document.getElementById('displayUsername');
+const displayGender = document.getElementById('displayGender');
+const userAvatarIcon = document.getElementById('userAvatarIcon');
+const userMunicipality = document.getElementById('userMunicipality');
+const userLocation = document.getElementById('userLocation');
+const userInterests = document.getElementById('userInterests');
+const strangerName = document.getElementById('strangerName');
+const strangerAvatar = document.getElementById('strangerAvatar');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const chatActions = document.getElementById('chatActions');
+const messagesArea = document.getElementById('messagesArea');
+const inputArea = document.getElementById('inputArea');
+const messageInput = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+const backBtn = document.getElementById('backBtn');
+const typingIndicator = document.getElementById('typingIndicator');
+const replyingTo = document.getElementById('replyingTo');
+const replyText = document.getElementById('replyText');
+const cancelReply = document.getElementById('cancelReply');
+const emojiTrigger = document.getElementById('emojiTrigger');
+const emojiPicker = document.getElementById('emojiPicker');
+const emojiGrid = document.getElementById('emojiGrid');
 
-// Shuffle button
-shuffleBtn.addEventListener("click", () => {
-    usernameInput.value = generateRandomUsername();
-    checkFormValidity();
-});
+let selectedGender = '';
+let selectedLookingFor = '';
 
-// Gender selection
+const genderOptions = document.querySelectorAll('.gender-option[data-gender]');
+const lookingForOptions = document.querySelectorAll('.gender-option[data-looking]');
+
 genderOptions.forEach(option => {
-    option.addEventListener("click", () => {
-        genderOptions.forEach(o => o.classList.remove("selected"));
-        option.classList.add("selected");
+    option.addEventListener('click', () => {
+        genderOptions.forEach(opt => opt.classList.remove('selected'));
+        option.classList.add('selected');
         selectedGender = option.dataset.gender;
-        checkFormValidity();
+        updateContinueButton();
     });
 });
 
 lookingForOptions.forEach(option => {
-    option.addEventListener("click", () => {
-        if(option.classList.contains("selected")) {
-            option.classList.remove("selected");
-            selectedLookingFor = null;
+    option.addEventListener('click', () => {
+        if (option.classList.contains('selected')) {
+            option.classList.remove('selected');
+            selectedLookingFor = '';
         } else {
-            lookingForOptions.forEach(o => o.classList.remove("selected"));
-            option.classList.add("selected");
+            lookingForOptions.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
             selectedLookingFor = option.dataset.looking;
         }
     });
 });
 
-// Interests selection (max 3)
-interestsGrid.querySelectorAll(".interest-chip").forEach(chip => {
-    chip.addEventListener("click", () => {
-        if(chip.classList.contains("active")) {
-            chip.classList.remove("active");
-            selectedInterests = selectedInterests.filter(i => i !== chip.dataset.interest);
-        } else if(selectedInterests.length < 3) {
-            chip.classList.add("active");
-            selectedInterests.push(chip.dataset.interest);
-        }
-    });
+function updateContinueButton() {
+    continueBtn.disabled = !usernameInput.value.trim() || !selectedGender;
+}
+usernameInput.addEventListener('input', updateContinueButton);
+
+function generateNickname() {
+    const adj = NICKNAME_ADJECTIVES[Math.floor(Math.random() * NICKNAME_ADJECTIVES.length)];
+    const noun = NICKNAME_NOUNS[Math.floor(Math.random() * NICKNAME_NOUNS.length)];
+    const num = Math.floor(Math.random() * 100);
+    return `${adj}${noun}${num}`;
+}
+
+shuffleBtn.addEventListener('click', () => {
+    usernameInput.value = generateNickname();
+    updateContinueButton();
 });
 
-// Enable continue button only if username & gender are filled
-function checkFormValidity() {
-    continueBtn.disabled = !(usernameInput.value.trim() && selectedGender);
+// Profanity filter
+function containsVulgarWords(text) {
+    const lowerText = text.toLowerCase();
+    return VULGAR_WORDS.some(word => {
+        const regex = new RegExp('\\b' + word + '\\b', 'i');
+        return regex.test(lowerText);
+    });
 }
-usernameInput.addEventListener("input", checkFormValidity);
 
-// Continue button
-welcomeForm.addEventListener("submit", (e) => {
+function filterMessage(text) {
+    let filtered = text;
+    VULGAR_WORDS.forEach(word => {
+        const regex = new RegExp('\\b' + word + '\\b', 'gi');
+        filtered = filtered.replace(regex, '*'.repeat(word.length));
+    });
+    return filtered;
+}
+
+// Emoji picker
+function initEmojiPicker() {
+    emojiGrid.innerHTML = EMOJIS.map(emoji => `<div class="emoji-item" data-emoji="${emoji}">${emoji}</div>`).join('');
+}
+emojiTrigger.addEventListener('click', (e) => { e.stopPropagation(); emojiPicker.classList.toggle('active'); });
+document.addEventListener('click', (e) => { if (!emojiPicker.contains(e.target) && e.target !== emojiTrigger) emojiPicker.classList.remove('active'); });
+emojiGrid.addEventListener('click', (e) => {
+    if (e.target.classList.contains('emoji-item')) {
+        const emoji = e.target.dataset.emoji;
+        const cursorPos = messageInput.selectionStart;
+        const textBefore = messageInput.value.substring(0, cursorPos);
+        const textAfter = messageInput.value.substring(cursorPos);
+        messageInput.value = textBefore + emoji + textAfter;
+        messageInput.focus();
+        messageInput.selectionStart = messageInput.selectionEnd = cursorPos + emoji.length;
+        emojiPicker.classList.remove('active');
+        sendBtn.disabled = !messageInput.value.trim();
+    }
+});
+
+// Interests
+interestsGrid.addEventListener('click', (e) => {
+    if (e.target.classList.contains('interest-chip') && !e.target.classList.contains('disabled')) {
+        const interest = e.target.dataset.interest;
+        if (e.target.classList.contains('active')) {
+            selectedInterests = selectedInterests.filter(i => i !== interest);
+            e.target.classList.remove('active');
+        } else {
+            if (selectedInterests.length < 3) {
+                selectedInterests.push(interest);
+                e.target.classList.add('active');
+            }
+        }
+        updateInterestChips();
+    }
+});
+function updateInterestChips() {
+    const chips = interestsGrid.querySelectorAll('.interest-chip');
+    chips.forEach(chip => {
+        if (!chip.classList.contains('active') && selectedInterests.length >= 3) chip.classList.add('disabled');
+        else if (!chip.classList.contains('active')) chip.classList.remove('disabled');
+    });
+}
+
+function getGenderIcon(gender) {
+    switch(gender) {
+        case 'Boy': return '👦';
+        case 'Girl': return '👧';
+        case 'LGBT': return '🏳️‍🌈';
+        default: return '👤';
+    }
+}
+
+// Welcome form
+welcomeForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    username = usernameInput.value.trim();
-    displayUsername.textContent = username;
-    displayGender.textContent = selectedGender;
+    const username = usernameInput.value.trim();
+    if (!username || !selectedGender) return;
 
-    if(municipalitySelect.value) {
-        userMunicipality.textContent = municipalitySelect.value;
-        document.getElementById("userLocation").style.display = "flex";
-    }
-
-    if(selectedInterests.length) {
-        userInterests.innerHTML = selectedInterests.map(i => `<div class="interest-tag">${i}</div>`).join("");
-        userInterests.style.display = "flex";
-    }
-
-    welcomeScreen.style.display = "none";
-    chatScreen.style.display = "block";
-
-    socket.emit("join", {
+    currentUser = {
         username,
         gender: selectedGender,
         lookingFor: selectedLookingFor,
         municipality: municipalitySelect.value,
-        interests: selectedInterests
-    });
+        interests: selectedInterests,
+        randomMode: randomModeCheckbox.checked
+    };
+
+    displayUsername.textContent = currentUser.username;
+    displayGender.textContent = currentUser.gender;
+    userAvatarIcon.textContent = getGenderIcon(currentUser.gender);
+
+    if (currentUser.municipality) { userMunicipality.textContent = currentUser.municipality; userLocation.style.display = 'block'; }
+    if (currentUser.interests.length > 0) {
+        userInterests.innerHTML = currentUser.interests.map(i => `<span class="interest-tag">${i}</span>`).join('');
+        userInterests.style.display = 'flex';
+    }
+
+    welcomeScreen.style.display = 'none';
+    chatScreen.style.display = 'block';
 });
 
 // Back button
-backBtn.addEventListener("click", () => {
-    chatScreen.style.display = "none";
-    welcomeScreen.style.display = "flex";
+backBtn.addEventListener('click', () => {
+    if (chatState === 'connected' || chatState === 'searching') socket.emit('stop-chat');
+    chatState = 'idle'; currentPartner = null;
+    chatScreen.style.display = 'none';
+    welcomeScreen.style.display = 'flex';
+    clearMessages();
 });
 
-// Start chat
-startBtn.addEventListener("click", () => {
-    socket.emit("start-search", {
-        username,
-        municipality: municipalitySelect.value,
-        interests: selectedInterests,
-        randomMode: !municipalitySelect.value && selectedInterests.length === 0
-    });
-    startBtn.disabled = true;
-    statusDot.classList.add("searching");
-    statusText.textContent = "Searching...";
-});
-
-// Cancel reply
-cancelReply.addEventListener("click", () => {
-    replyingToContainer.style.display = "none";
-    replyToMessageId = null;
-});
-
-// Emoji picker
-const emojis = ["😊","😂","😍","🥰","😎","😢","😡","👍","👎","🎉","💖","🤔"];
-emojiGrid.innerHTML = emojis.map(e => `<button class="reaction-emoji-btn">${e}</button>`).join("");
-emojiTrigger.addEventListener("click", (e) => {
-    e.preventDefault();
-    emojiPicker.classList.toggle("active");
-});
-emojiGrid.querySelectorAll(".reaction-emoji-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-        messageInput.value += btn.textContent;
-        emojiPicker.classList.remove("active");
-        sendBtn.disabled = !messageInput.value.trim();
-    });
-});
-
-// Send message
-messageInput.addEventListener("input", () => {
-    sendBtn.disabled = !messageInput.value.trim();
-    socket.emit("typing", { typing: !!messageInput.value.trim() });
-});
-
-function sanitizeMessage(text) {
-    let cleanText = text;
-    bannedWords.forEach(word => {
-        const regex = new RegExp(word, "gi");
-        cleanText = cleanText.replace(regex, "****");
-    });
-    return cleanText;
+// Reaction picker
+function createReactionPicker(messageId) {
+    const picker = document.createElement('div');
+    picker.className = 'reaction-picker';
+    picker.id = `reaction-picker-${messageId}`;
+    picker.innerHTML = REACTION_EMOJIS.map(emoji => 
+        `<button class="reaction-emoji-btn" data-emoji="${emoji}" data-message-id="${messageId}">${emoji}</button>`
+    ).join('');
+    return picker;
+}
+function handleReactionClick(messageId, emoji) {
+    socket.emit('send-reaction', { messageId, emoji });
+    if (!messageReactions[messageId]) messageReactions[messageId] = {};
+    if (!messageReactions[messageId][emoji]) messageReactions[messageId][emoji] = 0;
+    messageReactions[messageId][emoji]++;
+    updateMessageReactions(messageId);
+}
+function updateMessageReactions(messageId) {
+    const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (!messageDiv) return;
+    let reactionsContainer = messageDiv.querySelector('.message-reactions');
+    if (!reactionsContainer) {
+        reactionsContainer = document.createElement('div');
+        reactionsContainer.className = 'message-reactions';
+        messageDiv.querySelector('.message-bubble').appendChild(reactionsContainer);
+    }
+    const reactions = messageReactions[messageId];
+    if (!reactions || Object.keys(reactions).length === 0) { reactionsContainer.innerHTML = ''; return; }
+    reactionsContainer.innerHTML = Object.entries(reactions).map(([emoji, count]) => 
+        `<div class="reaction-item"><span class="reaction-emoji">${emoji}</span><span class="reaction-count">${count}</span></div>`
+    ).join('');
 }
 
-function sendMessage() {
-    let text = messageInput.value.trim();
-    if(!text) return;
+// Start/Stop buttons
+function createStartButton() { return `<button class="btn btn-start" id="startBtn">Start Chatting</button>`; }
+function createCancelButton() { return `<button class="btn btn-stop" id="stopBtn">Cancel</button>`; }
+function createStopAndNewButtons() { return `<button class="btn btn-stop" id="stopBtn">Stop</button><button class="btn btn-new" id="newMatchBtn">New Match</button>`; }
 
-    text = sanitizeMessage(text);
-
-    const messageData = {
-        text,
-        replyTo: replyToMessageId,
-        username
-    };
-
-    addMessageToChat(messageData, true);
-    socket.emit("send-message", messageData);
-
-    messageInput.value = "";
-    sendBtn.disabled = true;
-    replyingToContainer.style.display = "none";
-    replyToMessageId = null;
-}
-
-sendBtn.addEventListener("click", sendMessage);
-messageInput.addEventListener("keypress", (e) => {
-    if(e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-    }
+chatActions.addEventListener('click', (e) => {
+    const startBtn = e.target.closest('#startBtn');
+    const stopBtn = e.target.closest('#stopBtn');
+    const newMatchBtn = e.target.closest('#newMatchBtn');
+    if (startBtn) handleStartChat();
+    else if (stopBtn) handleStopChat();
+    else if (newMatchBtn) handleNewMatch();
 });
 
-// Add message to chat
-function addMessageToChat(msg, isYou = false) {
-    const div = document.createElement("div");
-    div.classList.add("message");
-    if(isYou) div.classList.add("you"); else div.classList.add("stranger");
-    div.dataset.id = msg.messageId || Date.now();
+function handleStartChat() {
+    chatState = 'searching';
+    updateUI();
+    clearMessages();
+    socket.emit('start-search', currentUser); // sends all preferences
+}
+function handleStopChat() {
+    socket.emit('stop-chat');
+    if (chatState === 'connected') addSystemMessage('You disconnected.');
+    chatState = 'idle'; currentPartner = null; hideTypingIndicator(); updateUI();
+}
+function handleNewMatch() {
+    handleStopChat();
+    setTimeout(handleStartChat, 500);
+}
 
-    let replyHTML = "";
-    if(msg.replyTo) {
-        const repliedMsg = document.querySelector(`.message[data-id='${msg.replyTo}']`);
-        if(repliedMsg) {
-            replyHTML = `<div class="reply-preview">${repliedMsg.querySelector(".message-text").textContent}</div>`;
-            repliedMsg.classList.add("highlight-replied"); // Highlight the original message
-        }
+// UI Updates
+function updateUI() {
+    switch(chatState) {
+        case 'idle':
+            strangerName.textContent = 'Not Connected';
+            statusText.textContent = 'Offline';
+            statusDot.className = 'status-dot';
+            strangerAvatar.textContent = '👤';
+            chatActions.innerHTML = createStartButton();
+            inputArea.style.display = 'none';
+            break;
+        case 'searching':
+            strangerName.textContent = 'Finding stranger...';
+            statusText.textContent = 'Searching';
+            statusDot.className = 'status-dot searching';
+            strangerAvatar.textContent = '🔍';
+            chatActions.innerHTML = createCancelButton();
+            inputArea.style.display = 'none';
+            break;
+        case 'connected':
+            strangerName.textContent = currentPartner ? currentPartner.username : 'Stranger';
+            statusText.textContent = 'Online';
+            statusDot.className = 'status-dot connected';
+            strangerAvatar.textContent = currentPartner ? getGenderIcon(currentPartner.gender) : '👤';
+            chatActions.innerHTML = createStopAndNewButtons();
+            inputArea.style.display = 'flex';
+            break;
     }
+}
 
-    div.innerHTML = `
+// Messages
+function clearMessages() { messageReactions = {}; messagesArea.innerHTML = ''; }
+function addSystemMessage(text) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'system-message';
+    messageDiv.innerHTML = `<span>${text}</span>`;
+    messagesArea.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+function addMessage(type, text, sender, messageId, replyTo = null) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    messageDiv.dataset.messageId = messageId || Date.now();
+    let replyHTML = '';
+    if (replyTo) replyHTML = `<div class="message-reply"><span>Replying to: ${escapeHtml(replyTo.text)}</span></div>`;
+    messageDiv.innerHTML = `
         <div class="message-bubble">
-            ${replyHTML ? `<div class="replying-to">${replyHTML}</div>` : ""}
-            <div class="message-text">${msg.text}</div>
-            <div class="message-reactions"></div>
+            <div class="message-sender">${sender}</div>
+            ${replyHTML}
+            <div class="message-text">${escapeHtml(text)}</div>
         </div>
     `;
-
-    messagesArea.appendChild(div);
-
-    div.addEventListener("click", () => {
-        if(!isYou) return;
-        replyToMessageId = div.dataset.id;
-        replyText.textContent = msg.text;
-        replyingToContainer.style.display = "flex";
-    });
-
-    // Add reaction buttons
-    const reactionsContainer = div.querySelector(".message-reactions");
-    const reactionEmojis = ["😊","😂","😍","👍","👎"];
-    reactionEmojis.forEach(emoji => {
-        const btn = document.createElement("button");
-        btn.textContent = emoji;
-        btn.classList.add("reaction-emoji-btn");
-        btn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            socket.emit("reactMessage", { messageId: div.dataset.id, emoji });
-            addReaction(div, emoji);
-        });
-        reactionsContainer.appendChild(btn);
-    });
-
-    messagesArea.scrollTop = messagesArea.scrollHeight;
+    const bubble = messageDiv.querySelector('.message-bubble');
+    bubble.addEventListener('mousedown', (e) => handleMessagePress(e, messageDiv));
+    bubble.addEventListener('touchstart', (e) => handleMessagePress(e, messageDiv));
+    bubble.addEventListener('mouseup', clearMessagePress);
+    bubble.addEventListener('touchend', clearMessagePress);
+    bubble.addEventListener('mouseleave', clearMessagePress);
+    messagesArea.appendChild(messageDiv);
+    scrollToBottom();
 }
 
-// Add reaction to a message
-function addReaction(messageDiv, emoji) {
-    const container = messageDiv.querySelector(".message-reactions");
-    let existing = container.querySelector(`.reaction-item[data-emoji='${emoji}']`);
-    if(existing) {
-        existing.querySelector(".reaction-count").textContent = parseInt(existing.querySelector(".reaction-count").textContent) + 1;
-    } else {
-        const reactionItem = document.createElement("div");
-        reactionItem.classList.add("reaction-item");
-        reactionItem.dataset.emoji = emoji;
-        reactionItem.innerHTML = `<span class="reaction-emoji">${emoji}</span> <span class="reaction-count">1</span>`;
-        container.appendChild(reactionItem);
+function handleMessagePress(e, messageDiv) {
+    longPressTimer = setTimeout(() => { showReactionPicker(messageDiv, messageDiv.dataset.messageId); }, 500);
+}
+function clearMessagePress() { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } }
+function showReactionPicker(messageDiv, messageId) {
+    document.querySelectorAll('.reaction-picker').forEach(p => p.remove());
+    const picker = createReactionPicker(messageId);
+    const bubble = messageDiv.querySelector('.message-bubble');
+    bubble.appendChild(picker); picker.classList.add('active');
+    picker.querySelectorAll('.reaction-emoji-btn').forEach(btn => btn.addEventListener('click', e => {
+        e.stopPropagation();
+        handleReactionClick(btn.dataset.messageId, btn.dataset.emoji);
+        picker.remove();
+    }));
+    setTimeout(() => {
+        document.addEventListener('click', function closePicker(e) { if (!picker.contains(e.target)) { picker.remove(); document.removeEventListener('click', closePicker); } });
+    }, 100);
+}
+
+function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+function scrollToBottom() { messagesArea.scrollTop = messagesArea.scrollHeight; }
+
+// Typing
+function showTypingIndicator() { typingIndicator.classList.add('active'); scrollToBottom(); }
+function hideTypingIndicator() { typingIndicator.classList.remove('active'); }
+
+// Send messages
+messageInput.addEventListener('input', () => {
+    messageInput.style.height = 'auto'; messageInput.style.height = messageInput.scrollHeight + 'px';
+    sendBtn.disabled = !messageInput.value.trim();
+    if (chatState === 'connected') {
+        socket.emit('typing');
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => { socket.emit('stop-typing'); }, 1000);
     }
+});
+
+messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+sendBtn.addEventListener('click', sendMessage);
+
+function sendMessage() {
+    const message = messageInput.value.trim();
+    if (!message || chatState !== 'connected') return;
+    const filteredMessage = filterMessage(message);
+    const messageId = Date.now();
+    addMessage('user', filteredMessage, currentUser.username, messageId, replyToMessage);
+    socket.emit('send-message', { message: filteredMessage, messageId, replyTo: replyToMessage ? { id: replyToMessage.id, text: replyToMessage.text } : null });
+    messageInput.value = ''; messageInput.style.height = 'auto'; sendBtn.disabled = true; replyingTo.style.display = 'none'; replyToMessage = null;
 }
+
+// Cancel reply
+cancelReply.addEventListener('click', () => { replyToMessage = null; replyingTo.style.display = 'none'; });
 
 // Socket events
-socket.on("receiveMessage", msg => addMessageToChat(msg, false));
-socket.on("typing", data => typingIndicator.classList.toggle("active", data.typing));
-socket.on("match-found", stranger => {
-    statusDot.classList.remove("searching");
-    statusDot.classList.add("connected");
-    statusText.textContent = "Connected";
-    strangerName.textContent = stranger.partnerUsername || "Stranger";
-    inputArea.style.display = "flex";
+socket.on('match-found', (partner) => { chatState = 'connected'; currentPartner = partner; updateUI(); addSystemMessage(`You are now connected with ${partner.username}.`); });
+socket.on('receive-message', (data) => {
+    hideTypingIndicator();
+    const filteredMessage = filterMessage(data.message);
+    addMessage('stranger', filteredMessage, currentPartner ? currentPartner.username : 'Stranger', data.messageId, data.replyTo);
 });
-socket.on("reactionAdded", data => {
-    const msgDiv = document.querySelector(`.message[data-id='${data.messageId}']`);
-    if(msgDiv) addReaction(msgDiv, data.emoji);
-});
+socket.on('typing', showTypingIndicator);
+socket.on('stop-typing', hideTypingIndicator);
