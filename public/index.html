@@ -18,6 +18,38 @@
             overflow-x: hidden;
         }
 
+        /* Connection Status Banner */
+        .connection-status {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            background: transparent;
+            color: #EAF2FF;
+            z-index: 999;
+            transition: all 0.3s ease;
+            height: 0;
+            overflow: hidden;
+        }
+
+        .connection-status.disconnected {
+            background: #FF6B6B;
+            color: #FFF;
+            height: auto;
+            padding: 12px 20px;
+        }
+
+        .connection-status.reconnecting {
+            background: #FFD233;
+            color: #050B16;
+            height: auto;
+            padding: 12px 20px;
+        }
+
         /* Welcome Screen */
         .welcome-screen {
             min-height: 100vh;
@@ -250,6 +282,7 @@
             display: none;
             min-height: 100vh;
             padding: 20px;
+            padding-top: 40px;
         }
 
         .chat-container {
@@ -258,7 +291,7 @@
             display: grid;
             grid-template-columns: 300px 1fr;
             gap: 20px;
-            height: calc(100vh - 40px);
+            height: calc(100vh - 60px);
         }
 
         /* Left Panel */
@@ -626,6 +659,17 @@
             color: #EAF2FF;
         }
 
+        /* Reply Preview in Message */
+        .message-reply-preview {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 3px solid currentColor;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
         .message-sender {
             font-size: 12px;
             opacity: 0.75;
@@ -833,7 +877,7 @@
             .chat-container {
                 grid-template-columns: 1fr;
                 height: auto;
-                min-height: calc(100vh - 40px);
+                min-height: calc(100vh - 60px);
             }
 
             .left-panel {
@@ -889,6 +933,9 @@
     </style>
 </head>
 <body>
+    <!-- Connection Status Banner -->
+    <div id="connectionStatus" class="connection-status"></div>
+
     <!-- Welcome Screen -->
     <div id="welcomeScreen" class="welcome-screen">
         <div class="welcome-card">

@@ -15,6 +15,7 @@ const io = socketIO(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+const SESSION_TIMEOUT = 120000; // 2 minutes
 
 // Serve static files
 app.use(express.static('public'));
@@ -81,7 +82,6 @@ function findMatch(user) {
             match = waitingUsers.find(u => {
                 if (!u.interests || u.interests.length === 0 || u.randomMode) return false;
                 
-                // Check gender compatibility
                 if (user.lookingFor && u.gender !== user.lookingFor) return false;
                 if (u.lookingFor && user.gender !== u.lookingFor) return false;
                 
@@ -92,16 +92,16 @@ function findMatch(user) {
         // Priority 4: Match with anyone compatible
         if (!match) {
             match = waitingUsers.find(u => {
-                // Check gender compatibility
                 if (user.lookingFor && u.gender !== user.lookingFor) return false;
                 if (u.lookingFor && user.gender !== u.lookingFor) return false;
                 return true;
             });
         }
 
-        // Priority 5: If still no match and user has no gender preference, match with anyone
+        // Priority 5: No preference matches anyone
         if (!match && !user.lookingFor) {
-            match = waitingUsers[0];
+            match = waitingUsers.find(u => u.socketId !== user.socketId);
+            console.log('✓ No-preference match');
         }
     }
 
@@ -280,6 +280,27 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Edit message
+    socket.on('edit-message', (data) => {
+        const partnerId = activeChats.get(socket.id);
+        if (partnerId) {
+            io.to(partnerId).emit('message-edited', {
+                messageId: data.messageId,
+                newText: data.newText
+            });
+        }
+    });
+
+    // Delete message
+    socket.on('delete-message', (data) => {
+        const partnerId = activeChats.get(socket.id);
+        if (partnerId) {
+            io.to(partnerId).emit('message-deleted', {
+                messageId: data.messageId
+            });
+        }
+    });
+
     // Handle disconnection logic
     function handleDisconnection(socketId, voluntary) {
         // Remove from waiting list
@@ -307,11 +328,11 @@ io.on('connection', (socket) => {
 // Cleanup stale connections
 setInterval(() => {
     const now = Date.now();
-    const timeout = 60000;
+    const timeout = SESSION_TIMEOUT; // Use the SESSION_TIMEOUT constant
     
     userConnections.forEach((data, socketId) => {
         if (now - data.lastActivity > timeout) {
-            console.log(`⚠ Cleaning up stale connection: ${socketId}`);
+            console.log(`⏱ Session timeout: ${socketId}`);
             
             const partnerId = activeChats.get(socketId);
             if (partnerId) {

@@ -16,7 +16,7 @@ const VULGAR_WORDS = [
     // English
     'fuck', 'shit', 'bitch', 'ass', 'asshole', 'damn', 'hell', 'crap', 'dick', 'pussy', 'cock', 'bastard', 'slut', 'whore', 'fag', 'nigger', 'cunt',
     // Tagalog
-    'putang', 'puta', 'gago', 'tarantado', 'tanga', 'bobo', 'ulol', 'sira', 'hayop', 'tangina', 'kantot', 'tamod', 'tite', 'puke', 'bilat', 'burat', 'hinayupak', 'leche', 'peste', 'yawa', 'buwisit'
+    'putang', 'puta', 'gago', 'tarantado', 'tanga', 'bobo', 'ulol', 'sira', 'hayop', 'tangina', 'kantot', 'tamod', 'tite', 'puke', 'bilat', 'burat', 'hinayupak', 'leche', 'peste', 'yawa', 'buwisit', 'bwesit'
 ];
 
 // State management
@@ -36,6 +36,7 @@ let replyToMessage = null;
 let longPressTimer = null;
 let typingTimeout = null;
 let messageReactions = {}; // Store reactions: {messageId: {emoji: count}}
+let messageTimestamps = {}; // Store message timestamps for edit/delete window
 
 // DOM Elements - Welcome Screen
 const welcomeScreen = document.getElementById('welcomeScreen');
@@ -73,6 +74,7 @@ const cancelReply = document.getElementById('cancelReply');
 const emojiTrigger = document.getElementById('emojiTrigger');
 const emojiPicker = document.getElementById('emojiPicker');
 const emojiGrid = document.getElementById('emojiGrid');
+const connectionStatus = document.getElementById('connectionStatus');
 
 // Gender selection
 let selectedGender = '';
@@ -331,6 +333,111 @@ function updateMessageReactions(messageId) {
     ).join('');
 }
 
+// Create reply button
+function createReplyButton(messageId, messageText) {
+    const btn = document.createElement('button');
+    btn.className = 'message-action-btn';
+    btn.textContent = 'Reply';
+    btn.onclick = () => {
+        replyToMessage = { id: messageId, text: messageText };
+        showReplyUI(messageText);
+        highlightMessage(messageId);
+    };
+    return btn;
+}
+
+// Show reply UI
+function showReplyUI(text) {
+    const preview = text.substring(0, 50) + (text.length > 50 ? '...' : '');
+    replyText.textContent = `Replying to: "${preview}"`;
+    replyingTo.style.display = 'flex';
+    messageInput.focus();
+}
+
+// Highlight message being replied to
+function highlightMessage(messageId) {
+    // Remove previous highlights
+    document.querySelectorAll('.message.replying-to').forEach(m => {
+        m.classList.remove('replying-to');
+    });
+    
+    // Highlight current message
+    const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (messageDiv) {
+        messageDiv.classList.add('replying-to');
+        messageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+// Add edit/delete buttons to own messages
+function addMessageActions(messageDiv, messageId, text, timestamp) {
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'message-actions';
+    
+    // Reply button (for all messages)
+    const replyBtn = createReplyButton(messageId, text);
+    actionsDiv.appendChild(replyBtn);
+    
+    // Edit/Delete only for own messages within 15 min
+    if (messageDiv.classList.contains('you')) {
+        const now = Date.now();
+        const timeDiff = now - timestamp;
+        const fifteenMin = 15 * 60 * 1000;
+        
+        if (timeDiff < fifteenMin) {
+            // Edit button
+            const editBtn = document.createElement('button');
+            editBtn.className = 'message-action-btn';
+            editBtn.textContent = 'Edit';
+            editBtn.onclick = () => editMessage(messageId, text);
+            actionsDiv.appendChild(editBtn);
+            
+            // Delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'message-action-btn';
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.onclick = () => deleteMessage(messageId);
+            actionsDiv.appendChild(deleteBtn);
+        }
+    }
+    
+    messageDiv.appendChild(actionsDiv);
+}
+
+// Edit message
+function editMessage(messageId, currentText) {
+    const newText = prompt('Edit message:', currentText);
+    if (newText && newText.trim() && newText !== currentText) {
+        if (containsVulgarWords(newText)) {
+            alert('Please keep the conversation respectful.');
+            return;
+        }
+        
+        // Update UI
+        const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
+        const textDiv = messageDiv.querySelector('.message-text');
+        textDiv.textContent = newText + ' (edited)';
+        
+        // Send to server
+        socket.emit('edit-message', { messageId, newText });
+    }
+}
+
+// Delete message
+function deleteMessage(messageId) {
+    if (confirm('Delete this message?')) {
+        // Update UI
+        const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
+        const textDiv = messageDiv.querySelector('.message-text');
+        textDiv.textContent = '(Message deleted)';
+        textDiv.style.fontStyle = 'italic';
+        textDiv.style.opacity = '0.5';
+        
+        // Send to server
+        socket.emit('delete-message', { messageId });
+    }
+}
+
 // Start chatting button functions
 function createStartButton() {
     return `
@@ -492,6 +599,7 @@ function updateUI() {
 // Message functions
 function clearMessages() {
     messageReactions = {};
+    messageTimestamps = {};
     messagesArea.innerHTML = `
         <div class="typing-indicator-wrapper">
             <div class="typing-indicator" id="typingIndicator">
@@ -521,6 +629,8 @@ function addMessage(type, text, sender, messageId) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
     messageDiv.dataset.messageId = messageId || Date.now();
+    const timestamp = Date.now();
+    messageTimestamps[messageDiv.dataset.messageId] = timestamp;
     
     messageDiv.innerHTML = `
         <div class="message-bubble">
@@ -536,6 +646,9 @@ function addMessage(type, text, sender, messageId) {
     bubble.addEventListener('mouseup', clearMessagePress);
     bubble.addEventListener('touchend', clearMessagePress);
     bubble.addEventListener('mouseleave', clearMessagePress);
+    
+    // Add action buttons (reply, edit, delete)
+    addMessageActions(messageDiv, messageDiv.dataset.messageId, text, timestamp);
     
     const typingWrapper = document.querySelector('.typing-indicator-wrapper');
     if (typingWrapper && typingWrapper.parentNode) {
@@ -724,6 +837,26 @@ socket.on('receive-reaction', (data) => {
     updateMessageReactions(messageId);
 });
 
+// Receive edited message
+socket.on('message-edited', (data) => {
+    const messageDiv = document.querySelector(`[data-message-id="${data.messageId}"]`);
+    if (messageDiv) {
+        const textDiv = messageDiv.querySelector('.message-text');
+        textDiv.textContent = data.newText + ' (edited)';
+    }
+});
+
+// Receive deleted message
+socket.on('message-deleted', (data) => {
+    const messageDiv = document.querySelector(`[data-message-id="${data.messageId}"]`);
+    if (messageDiv) {
+        const textDiv = messageDiv.querySelector('.message-text');
+        textDiv.textContent = '(Message deleted)';
+        textDiv.style.fontStyle = 'italic';
+        textDiv.style.opacity = '0.5';
+    }
+});
+
 socket.on('partner-disconnected', () => {
     addSystemMessage('Stranger disconnected.');
     chatState = 'idle';
@@ -742,20 +875,44 @@ socket.on('partner-stop-typing', () => {
     hideTypingIndicator();
 });
 
-// Connection status
+// Connection status handling
 socket.on('connect', () => {
     console.log('Connected to server');
-});
-
-socket.on('disconnect', () => {
-    console.log('Disconnected from server');
+    connectionStatus.className = 'connection-status';
+    
+    // Restore session if was connected
     if (chatState === 'connected') {
-        addSystemMessage('Connection lost. Please refresh the page.');
-        chatState = 'idle';
-        hideTypingIndicator();
-        updateUI();
+        addSystemMessage('Reconnected! But your chat partner may have been disconnected.');
     }
 });
+
+socket.on('disconnect', (reason) => {
+    console.log('Disconnected:', reason);
+    connectionStatus.textContent = '⚠️ Disconnected from server';
+    connectionStatus.className = 'connection-status disconnected';
+    
+    if (chatState === 'connected') {
+        addSystemMessage('Connection lost. Trying to reconnect...');
+    }
+});
+
+socket.on('reconnecting', (attemptNumber) => {
+    console.log('Reconnecting attempt:', attemptNumber);
+    connectionStatus.textContent = '🔄 Reconnecting...';
+    connectionStatus.className = 'connection-status reconnecting';
+});
+
+// Heartbeat to keep session alive
+setInterval(() => {
+    if (socket.connected) {
+        socket.emit('heartbeat');
+        
+        // Update last activity on any user action
+        if (chatState === 'connected') {
+            console.log('Heartbeat sent');
+        }
+    }
+}, 30000); // Every 30 seconds
 
 // Initialize
 initEmojiPicker();
