@@ -742,65 +742,21 @@ socket.on('partner-stop-typing', () => {
     hideTypingIndicator();
 });
 
-socket.on('chat-stopped', () => {
-    if (chatState === 'connected') {
-        addSystemMessage('Chat ended.');
-    }
-    chatState = 'idle';
-    currentPartner = null;
-    hideTypingIndicator();
-    updateUI();
-});
-
+// Connection status
 socket.on('connect', () => {
-    console.log('Connected to server:', socket.id);
+    console.log('Connected to server');
 });
 
 socket.on('disconnect', () => {
     console.log('Disconnected from server');
-    addSystemMessage('⚠️ Connection lost. Please try again.');
-    chatState = 'idle';
-    currentPartner = null;
-    hideTypingIndicator();
-    updateUI();
+    if (chatState === 'connected') {
+        addSystemMessage('Connection lost. Please refresh the page.');
+        chatState = 'idle';
+        hideTypingIndicator();
+        updateUI();
+    }
 });
 
-/* =========================
-   INITIALIZATION
-========================= */
-
-// Initialize emoji picker on load
+// Initialize
 initEmojiPicker();
-
-// Initial UI state
 updateUI();
-
-/* =========================
-   OPTIONAL: Reply feature hook
-   (future-ready, safe to keep)
-========================= */
-
-messagesArea.addEventListener('dblclick', (e) => {
-    const messageDiv = e.target.closest('.message');
-    if (!messageDiv || !messageDiv.classList.contains('stranger')) return;
-
-    const messageText = messageDiv.querySelector('.message-text').textContent;
-    const messageId = messageDiv.dataset.messageId;
-
-    replyToMessage = {
-        id: messageId,
-        text: messageText
-    };
-
-    replyText.textContent = messageText;
-    replyingTo.style.display = 'flex';
-    messageInput.focus();
-});
-
-/* =========================
-   SAFETY: Cleanup reaction pickers
-========================= */
-
-document.addEventListener('scroll', () => {
-    document.querySelectorAll('.reaction-picker').forEach(picker => picker.remove());
-});
