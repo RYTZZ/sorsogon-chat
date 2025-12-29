@@ -37,6 +37,7 @@ let longPressTimer = null;
 let typingTimeout = null;
 let messageReactions = {}; // Store reactions: {messageId: {emoji: count}}
 let messageTimestamps = {}; // Store message timestamps for edit/delete window
+let activeMessageMenu = null; // Track which message menu is open
 
 // DOM Elements - Welcome Screen
 const welcomeScreen = document.getElementById('welcomeScreen');
@@ -274,76 +275,174 @@ backBtn.addEventListener('click', () => {
     clearMessages();
 });
 
-// Create reaction picker for message
-function createReactionPicker(messageId) {
-    const picker = document.createElement('div');
-    picker.className = 'reaction-picker';
-    picker.id = `reaction-picker-${messageId}`;
-    
-    picker.innerHTML = REACTION_EMOJIS.map(emoji => 
-        `<button class="reaction-emoji-btn" data-emoji="${emoji}" data-message-id="${messageId}">${emoji}</button>`
-    ).join('');
-    
-    return picker;
-}
+// Create message action menu (Reply, Edit, Delete, Reactions)
+function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage) {
+    const menu = document.createElement('div');
+    menu.className = 'message-menu';
+    menu.style.cssText = `
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        background: #0B1220;
+        border: 1px solid #1E2A44;
+        border-radius: 12px;
+        padding: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        z-index: 1001;
+        margin-bottom: 8px;
+        min-width: 200px;
+    `;
 
-// Handle reaction click
-function handleReactionClick(messageId, emoji) {
-    // Send reaction to server
-    socket.emit('send-reaction', { messageId, emoji });
-    
-    // Update local reactions
-    if (!messageReactions[messageId]) {
-        messageReactions[messageId] = {};
-    }
-    
-    if (!messageReactions[messageId][emoji]) {
-        messageReactions[messageId][emoji] = 0;
-    }
-    
-    messageReactions[messageId][emoji]++;
-    
-    // Update reaction display
-    updateMessageReactions(messageId);
-}
+    // Add reactions
+    const reactionsDiv = document.createElement('div');
+    reactionsDiv.style.cssText = `
+        display: flex;
+        gap: 4px;
+        padding: 8px;
+        border-bottom: 1px solid #1E2A44;
+        flex-wrap: wrap;
+        justify-content: center;
+    `;
 
-// Update reaction display on message
-function updateMessageReactions(messageId) {
-    const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
-    if (!messageDiv) return;
-    
-    let reactionsContainer = messageDiv.querySelector('.message-reactions');
-    if (!reactionsContainer) {
-        reactionsContainer = document.createElement('div');
-        reactionsContainer.className = 'message-reactions';
-        messageDiv.querySelector('.message-bubble').appendChild(reactionsContainer);
-    }
-    
-    const reactions = messageReactions[messageId];
-    if (!reactions || Object.keys(reactions).length === 0) {
-        reactionsContainer.innerHTML = '';
-        return;
-    }
-    
-    reactionsContainer.innerHTML = Object.entries(reactions).map(([emoji, count]) => 
-        `<div class="reaction-item">
-            <span class="reaction-emoji">${emoji}</span>
-            <span class="reaction-count">${count}</span>
-        </div>`
-    ).join('');
-}
+    REACTION_EMOJIS.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.textContent = emoji;
+        btn.style.cssText = `
+            font-size: 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        `;
+        btn.onmouseenter = () => btn.style.transform = 'scale(1.3)';
+        btn.onmouseleave = () => btn.style.transform = 'scale(1)';
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            handleReactionClick(messageId, emoji);
+            menu.remove();
+            activeMessageMenu = null;
+        };
+        reactionsDiv.appendChild(btn);
+    });
 
-// Create reply button
-function createReplyButton(messageId, messageText) {
-    const btn = document.createElement('button');
-    btn.className = 'message-action-btn';
-    btn.textContent = 'Reply';
-    btn.onclick = () => {
-        replyToMessage = { id: messageId, text: messageText };
-        showReplyUI(messageText);
-        highlightMessage(messageId);
+    menu.appendChild(reactionsDiv);
+
+    // Add action buttons
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    `;
+
+    // Reply button
+    const replyBtn = document.createElement('button');
+    replyBtn.textContent = '↩️ Reply';
+    replyBtn.style.cssText = `
+        width: 100%;
+        padding: 8px 12px;
+        background: #10192E;
+        border: 1px solid #1E2A44;
+        border-radius: 6px;
+        color: #EAF2FF;
+        cursor: pointer;
+        text-align: left;
+        font-size: 13px;
+        transition: all 0.2s;
+    `;
+    replyBtn.onmouseover = () => {
+        replyBtn.style.background = '#1E2A44';
+        replyBtn.style.borderColor = '#18C3E2';
     };
-    return btn;
+    replyBtn.onmouseout = () => {
+        replyBtn.style.background = '#10192E';
+        replyBtn.style.borderColor = '#1E2A44';
+    };
+    replyBtn.onclick = (e) => {
+        e.stopPropagation();
+        replyToMessage = { id: messageId, text: text };
+        showReplyUI(text);
+        highlightMessage(messageId);
+        menu.remove();
+        activeMessageMenu = null;
+    };
+    buttonsDiv.appendChild(replyBtn);
+
+    // Edit and Delete buttons only for own messages within 15 minutes
+    if (isOwnMessage) {
+        const now = Date.now();
+        const timeDiff = now - timestamp;
+        const fifteenMin = 15 * 60 * 1000;
+
+        if (timeDiff < fifteenMin) {
+            // Edit button
+            const editBtn = document.createElement('button');
+            editBtn.textContent = '✏️ Edit';
+            editBtn.style.cssText = `
+                width: 100%;
+                padding: 8px 12px;
+                background: #10192E;
+                border: 1px solid #1E2A44;
+                border-radius: 6px;
+                color: #EAF2FF;
+                cursor: pointer;
+                text-align: left;
+                font-size: 13px;
+                transition: all 0.2s;
+            `;
+            editBtn.onmouseover = () => {
+                editBtn.style.background = '#1E2A44';
+                editBtn.style.borderColor = '#18C3E2';
+            };
+            editBtn.onmouseout = () => {
+                editBtn.style.background = '#10192E';
+                editBtn.style.borderColor = '#1E2A44';
+            };
+            editBtn.onclick = (e) => {
+                e.stopPropagation();
+                editMessage(messageId, text);
+                menu.remove();
+                activeMessageMenu = null;
+            };
+            buttonsDiv.appendChild(editBtn);
+
+            // Delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '🗑️ Delete';
+            deleteBtn.style.cssText = `
+                width: 100%;
+                padding: 8px 12px;
+                background: #10192E;
+                border: 1px solid #1E2A44;
+                border-radius: 6px;
+                color: #FF6B6B;
+                cursor: pointer;
+                text-align: left;
+                font-size: 13px;
+                transition: all 0.2s;
+            `;
+            deleteBtn.onmouseover = () => {
+                deleteBtn.style.background = '#2A1616';
+                deleteBtn.style.borderColor = '#FF6B6B';
+            };
+            deleteBtn.onmouseout = () => {
+                deleteBtn.style.background = '#10192E';
+                deleteBtn.style.borderColor = '#1E2A44';
+            };
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                deleteMessage(messageId);
+                menu.remove();
+                activeMessageMenu = null;
+            };
+            buttonsDiv.appendChild(deleteBtn);
+        }
+    }
+
+    menu.appendChild(buttonsDiv);
+    return menu;
 }
 
 // Show reply UI
@@ -367,41 +466,6 @@ function highlightMessage(messageId) {
         messageDiv.classList.add('replying-to');
         messageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-}
-
-// Add edit/delete buttons to own messages
-function addMessageActions(messageDiv, messageId, text, timestamp) {
-    const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'message-actions';
-    
-    // Reply button (for all messages)
-    const replyBtn = createReplyButton(messageId, text);
-    actionsDiv.appendChild(replyBtn);
-    
-    // Edit/Delete only for own messages within 15 min
-    if (messageDiv.classList.contains('you')) {
-        const now = Date.now();
-        const timeDiff = now - timestamp;
-        const fifteenMin = 15 * 60 * 1000;
-        
-        if (timeDiff < fifteenMin) {
-            // Edit button
-            const editBtn = document.createElement('button');
-            editBtn.className = 'message-action-btn';
-            editBtn.textContent = 'Edit';
-            editBtn.onclick = () => editMessage(messageId, text);
-            actionsDiv.appendChild(editBtn);
-            
-            // Delete button
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'message-action-btn';
-            deleteBtn.textContent = 'Delete';
-            deleteBtn.onclick = () => deleteMessage(messageId);
-            actionsDiv.appendChild(deleteBtn);
-        }
-    }
-    
-    messageDiv.appendChild(actionsDiv);
 }
 
 // Edit message
@@ -633,22 +697,52 @@ function addMessage(type, text, sender, messageId) {
     messageTimestamps[messageDiv.dataset.messageId] = timestamp;
     
     messageDiv.innerHTML = `
-        <div class="message-bubble">
+        <div class="message-bubble" style="position: relative;">
             <div class="message-sender">${sender}</div>
             <div class="message-text">${escapeHtml(text)}</div>
         </div>
     `;
     
-    // Add long press for reaction picker
+    // Add long press event for showing menu
     const bubble = messageDiv.querySelector('.message-bubble');
-    bubble.addEventListener('mousedown', (e) => handleMessagePress(e, messageDiv));
-    bubble.addEventListener('touchstart', (e) => handleMessagePress(e, messageDiv));
-    bubble.addEventListener('mouseup', clearMessagePress);
-    bubble.addEventListener('touchend', clearMessagePress);
-    bubble.addEventListener('mouseleave', clearMessagePress);
-    
-    // Add action buttons (reply, edit, delete)
-    addMessageActions(messageDiv, messageDiv.dataset.messageId, text, timestamp);
+    let pressTimer;
+
+    const handlePressStart = (e) => {
+        e.preventDefault();
+        pressTimer = setTimeout(() => {
+            // Remove existing menu
+            if (activeMessageMenu) {
+                activeMessageMenu.remove();
+            }
+
+            // Create and show new menu
+            const menu = createMessageMenu(messageDiv, messageDiv.dataset.messageId, text, timestamp, type === 'you');
+            bubble.appendChild(menu);
+            activeMessageMenu = menu;
+
+            // Close menu when clicking outside
+            const closeHandler = (event) => {
+                if (!menu.contains(event.target) && !bubble.contains(event.target)) {
+                    menu.remove();
+                    activeMessageMenu = null;
+                    document.removeEventListener('click', closeHandler);
+                }
+            };
+            setTimeout(() => {
+                document.addEventListener('click', closeHandler);
+            }, 100);
+        }, 500); // 500ms long press
+    };
+
+    const handlePressEnd = () => {
+        clearTimeout(pressTimer);
+    };
+
+    bubble.addEventListener('mousedown', handlePressStart);
+    bubble.addEventListener('touchstart', handlePressStart);
+    bubble.addEventListener('mouseup', handlePressEnd);
+    bubble.addEventListener('mouseleave', handlePressEnd);
+    bubble.addEventListener('touchend', handlePressEnd);
     
     const typingWrapper = document.querySelector('.typing-indicator-wrapper');
     if (typingWrapper && typingWrapper.parentNode) {
@@ -657,52 +751,6 @@ function addMessage(type, text, sender, messageId) {
         messagesArea.appendChild(messageDiv);
     }
     scrollToBottom();
-}
-
-function handleMessagePress(e, messageDiv) {
-    longPressTimer = setTimeout(() => {
-        // Long press detected - show reaction picker
-        const messageId = messageDiv.dataset.messageId;
-        showReactionPicker(messageDiv, messageId);
-    }, 500);
-}
-
-function clearMessagePress() {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-    }
-}
-
-function showReactionPicker(messageDiv, messageId) {
-    // Remove any existing reaction pickers
-    document.querySelectorAll('.reaction-picker').forEach(picker => picker.remove());
-    
-    const picker = createReactionPicker(messageId);
-    const bubble = messageDiv.querySelector('.message-bubble');
-    bubble.appendChild(picker);
-    picker.classList.add('active');
-    
-    // Add click handlers
-    picker.querySelectorAll('.reaction-emoji-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const emoji = btn.dataset.emoji;
-            const msgId = btn.dataset.messageId;
-            handleReactionClick(msgId, emoji);
-            picker.remove();
-        });
-    });
-    
-    // Close picker when clicking outside
-    setTimeout(() => {
-        document.addEventListener('click', function closePicker(e) {
-            if (!picker.contains(e.target)) {
-                picker.remove();
-                document.removeEventListener('click', closePicker);
-            }
-        });
-    }, 100);
 }
 
 function escapeHtml(text) {
