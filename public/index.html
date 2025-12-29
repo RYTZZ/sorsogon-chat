@@ -886,6 +886,105 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #2A3A54;
         }
+
+        /* Replied message highlight */
+.message.replied {
+    border-left: 4px solid #FF8A1F; /* Highlight border */
+    background: rgba(255, 138, 31, 0.1); /* Subtle background */
+    padding-left: 12px; /* Adjust padding to accommodate border */
+}
+
+/* Reply preview inside a message */
+.message-bubble .reply-preview {
+    background: rgba(255, 255, 255, 0.1);
+    border-left: 3px solid #FF8A1F;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #FFD233;
+}
+
+/* Message reactions updated style */
+.message-reactions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+.reaction-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(24, 195, 226, 0.2); /* Slightly tinted background */
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #EAF2FF;
+    transition: all 0.2s;
+}
+
+.reaction-item:hover {
+    background: #18C3E2;
+    transform: scale(1.05);
+}
+
+.reaction-emoji {
+    font-size: 16px;
+}
+
+.reaction-count {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Reaction picker styling */
+.reaction-picker {
+    display: none;
+    position: absolute;
+    background: #0B1220;
+    border: 1px solid #1E2A44;
+    border-radius: 24px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    bottom: 100%;
+    margin-bottom: 8px;
+    gap: 6px;
+}
+
+.reaction-picker.active {
+    display: flex;
+}
+
+.reaction-emoji-btn {
+    font-size: 24px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+}
+
+.reaction-emoji-btn:hover {
+    background: #1E2A44;
+    transform: scale(1.2);
+}
+
+/* Optional: make replied messages slightly stand out in conversation flow */
+.message.replied.you .message-bubble {
+    background: #FF8A1F;
+    color: #050B16;
+}
+
+.message.replied.stranger .message-bubble {
+    background: #FFD233;
+    color: #050B16;
+}
+
     </style>
 </head>
 <body>
