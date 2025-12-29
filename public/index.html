@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorsogon Chat - Connect with Strangers</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #050B16;
+            color: #EAF2FF;
+            overflow-x: hidden;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .welcome-card {
+            background: #0B1220;
+            border: 1px solid #1E2A44;
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .welcome-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .icon-circle {
+            width: 64px;
+            height: 64px;
+            background: #10192E;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .welcome-title {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #EAF2FF;
+        }
+
+        .welcome-subtitle {
+            color: #9FB0C8;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #EAF2FF;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: #10192E;
+            border: 1px solid #1E2A44;
+            border-radius: 8px;
+            color: #EAF2FF;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-input:focus, .form-select:focus {
+            border-color: #18C3E2;
+        }
+
+        .interests-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .interest-chip {
+            padding: 8px 16px;
+            background: #10192E;
+            border: 1px solid #1E2A44;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #9FB0C8;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .interest-chip:hover {
+            border-color: #18C3E2;
+        }
+
+        .interest-chip.active {
+            background: #18C3E2;
+            color: #050B16;
+            border-color: #18C3E2;
+        }
+
+        .interest-chip.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .random-mode-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: #10192E;
+            border: 1px solid #1E2A44;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .random-mode-box:hover {
+            border-color: #18C3E2;
+        }
+
+        .random-mode-box input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #18C3E2;
+        }
+
+        .random-mode-content {
+            flex: 1;
+        }
+
+        .random-mode-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .random-mode-desc {
+            font-size: 12px;
+            color: #9FB0C8;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: #FF8A1F;
+            color: #EAF2FF;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #FF6B00;
+        }
+
+        .btn-primary:disabled {
+            background: #6C7A90;
+            cursor: not-allowed;
+        }
+
+        /* Chat Screen */
+        .chat-screen {
+            display: none;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .chat-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        /* Left Panel */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: #0B1220;
+            border: 1px solid #1E2A44;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .user-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            background: #10192E;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #18C3E2;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #EAF2FF;
+        }
+
+        .user-label {
+            font-size: 14px;
+            color: #9FB0C8;
+        }
+
+        .user-location {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #9FB0C8;
+            margin-bottom: 8px;
+        }
+
+        .interest-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .interest-tag {
+            font-size: 12px;
+            padding: 4px 12px;
+            background: #10192E;
+            color: #18C3E2;
+            border-radius: 12px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .safety-list {
+            list-style: none;
+        }
+
+        .safety-list li {
+            font-size: 14px;
+            color: #9FB0C8;
+            margin-bottom: 8px;
+        }
+
+        .announcement-text {
+            font-size: 14px;
+            color: #9FB0C8;
+            line-height: 1.5;
+        }
+
+        /* Right Panel */
+        .right-panel {
+            background: #0B1220;
+            border: 1px solid #1E2A44;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #1E2A44;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stranger-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stranger-avatar {
+            width: 40px;
+            height: 40px;
+            background: #10192E;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stranger-name {
+            font-weight: 600;
+            color: #EAF2FF;
+        }
+
+        .stranger-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #9FB0C8;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6C7A90;
+        }
+
+        .status-dot.searching {
+            background: #FFD233;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.connected {
+            background: #2FBF71;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-start {
+            background: #FF8A1F;
+            color: #EAF2FF;
+        }
+
+        .btn-start:hover {
+            background: #FF6B00;
+        }
+
+        .btn-stop {
+            background: #6C7A90;
+            color: #EAF2FF;
+        }
+
+        .btn-stop:hover {
+            background: #4A5568;
+        }
+
+        .btn-new {
+            background: #18C3E2;
+            color: #050B16;
+        }
+
+        .btn-new:hover {
+            background: #0FA3C7;
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #10192E;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .empty-state {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #9FB0C8;
+        }
+
+        .empty-icon {
+            margin-bottom: 16px;
+            color: #6C7A90;
+        }
+
+        .searching-state {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .searching-icon {
+            margin-bottom: 16px;
+            color: #FFD233;
+            animation: pulse 1.5s infinite;
+        }
+
+        .system-message {
+            text-align: center;
+        }
+
+        .system-message span {
+            display: inline-block;
+            font-size: 14px;
+            padding: 6px 16px;
+            background: #0B1220;
+            color: #9FB0C8;
+            border-radius: 16px;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 8px;
+        }
+
+        .message.you {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+        }
+
+        .message.you .message-bubble {
+            background: #18C3E2;
+            color: #EAF2FF;
+        }
+
+        .message.stranger .message-bubble {
+            background: #1F7A8C;
+            color: #EAF2FF;
+        }
+
+        .message-sender {
+            font-size: 12px;
+            opacity: 0.75;
+            margin-bottom: 4px;
+        }
+
+        .message-text {
+            word-wrap: break-word;
+        }
+
+        .input-area {
+            padding: 16px 20px;
+            border-top: 1px solid #1E2A44;
+            display: flex;
+            gap: 12px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: #10192E;
+            border: 1px solid #1E2A44;
+            border-radius: 8px;
+            color: #EAF2FF;
+            font-size: 14px;
+            outline: none;
+            resize: none;
+            max-height: 120px;
+            min-height: 48px;
+            font-family: inherit;
+        }
+
+        .message-input:focus {
+            border-color: #18C3E2;
+        }
+
+        .btn-send {
+            padding: 12px 16px;
+            background: #18C3E2;
+            color: #050B16;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-send:hover:not(:disabled) {
+            background: #0FA3C7;
+        }
+
+        .btn-send:disabled {
+            background: #6C7A90;
+            color: #9FB0C8;
+            cursor: not-allowed;
+        }
+
+        /* Icons */
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .chat-container {
+                grid-template-columns: 1fr;
+                height: auto;
+                min-height: calc(100vh - 40px);
+            }
+
+            .left-panel {
+                order: 2;
+            }
+
+            .right-panel {
+                order: 1;
+                min-height: 500px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .welcome-card {
+                padding: 24px;
+            }
+
+            .chat-actions {
+                flex-wrap: wrap;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .message-bubble {
+                max-width: 85%;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #10192E;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1E2A44;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2A3A54;
+        }
+    </style>
+</head>
+<body>
+    <!-- Welcome Screen -->
+    <div id="welcomeScreen" class="welcome-screen">
+        <div class="welcome-card">
+            <div class="welcome-header">
+                <div class="icon-circle">
+                    <svg class="icon" style="width: 32px; height: 32px; color: #18C3E2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                </div>
+                <h1 class="welcome-title">Sorsogon Chat</h1>
+                <p class="welcome-subtitle">Connect with strangers anonymously</p>
+            </div>
+
+            <form id="welcomeForm">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="usernameInput" class="form-input" placeholder="Enter a username" maxlength="20" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Municipality (Optional)</label>
+                    <select id="municipalitySelect" class="form-select">
+                        <option value="">Any Municipality</option>
+                        <option value="Barcelona">Barcelona</option>
+                        <option value="Bulan">Bulan</option>
+                        <option value="Bulusan">Bulusan</option>
+                        <option value="Casiguran">Casiguran</option>
+                        <option value="Castilla">Castilla</option>
+                        <option value="Donsol">Donsol</option>
+                        <option value="Gubat">Gubat</option>
+                        <option value="Irosin">Irosin</option>
+                        <option value="Juban">Juban</option>
+                        <option value="Magallanes">Magallanes</option>
+                        <option value="Matnog">Matnog</option>
+                        <option value="Pilar">Pilar</option>
+                        <option value="Prieto Diaz">Prieto Diaz</option>
+                        <option value="Santa Magdalena">Santa Magdalena</option>
+                        <option value="Sorsogon City">Sorsogon City</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Interests (Optional - Select up to 3)</label>
+                    <div class="interests-grid" id="interestsGrid">
+                        <div class="interest-chip" data-interest="Music">Music</div>
+                        <div class="interest-chip" data-interest="Movies">Movies</div>
+                        <div class="interest-chip" data-interest="Sports">Sports</div>
+                        <div class="interest-chip" data-interest="Gaming">Gaming</div>
+                        <div class="interest-chip" data-interest="Art">Art</div>
+                        <div class="interest-chip" data-interest="Reading">Reading</div>
+                        <div class="interest-chip" data-interest="Travel">Travel</div>
+                        <div class="interest-chip" data-interest="Cooking">Cooking</div>
+                        <div class="interest-chip" data-interest="Photography">Photography</div>
+                        <div class="interest-chip" data-interest="Fitness">Fitness</div>
+                        <div class="interest-chip" data-interest="Technology">Technology</div>
+                        <div class="interest-chip" data-interest="Fashion">Fashion</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="random-mode-box" for="randomModeCheckbox">
+                        <input type="checkbox" id="randomModeCheckbox">
+                        <div class="random-mode-content">
+                            <div class="random-mode-title">
+                                <svg class="icon" style="color: #18C3E2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Random Mode</span>
+                            </div>
+                            <p class="random-mode-desc">Connect with any stranger</p>
+                        </div>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-primary">Continue</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Chat Screen -->
+    <div id="chatScreen" class="chat-screen">
+        <div class="chat-container">
+            <!-- Left Panel -->
+            <div class="left-panel">
+                <!-- User Card -->
+                <div class="card">
+                    <div class="user-card-header">
+                        <div class="avatar">
+                            <svg class="icon" style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name" id="displayUsername">User</div>
+                            <div class="user-label">You</div>
+                        </div>
+                    </div>
+
+                    <div id="userLocation" style="display: none;">
+                        <div class="user-location">
+                            <svg class="icon" style="color: #0FA3C7;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span id="userMunicipality"></span>
+                        </div>
+                    </div>
+
+                    <div id="userInterests" class="interest-tags" style="display: none;"></div>
+                </div>
+
+                <!-- Safety Tips -->
+                <div class="card">
+                    <div class="section-header">
+                        <svg class="icon" style="color: #FFD233;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <h3>Safety Tips</h3>
+                    </div>
+                    <ul class="safety-list">
+                        <li>• Never share personal information</li>
+                        <li>• Be respectful to strangers</li>
+                        <li>• Report inappropriate behavior</li>
+                        <li>• Disconnect if uncomfortable</li>
+                    </ul>
+                </div>
+
+                <!-- Announcements -->
+                <div class="card">
+                    <div class="section-header">
+                        <svg class="icon" style="color: #18C3E2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3>Announcements</h3>
+                    </div>
+                    <p class="announcement-text">
+                        Welcome to Sorsogon Chat! Connect with strangers from your municipality or with shared interests.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="right-panel">
+                <!-- Chat Header -->
+                <div class="chat-header">
+                    <div class="stranger-info">
+                        <div class="stranger-avatar" id="strangerAvatar">
+                            <svg class="icon" id="strangerIcon" style="color: #9FB0C8;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="stranger-name" id="strangerName">Not Connected</div>
+                            <div class="stranger-status">
+                                <span class="status-dot" id="statusDot"></span>
+                                <span id="statusText">Offline</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-actions" id="chatActions">
+                        <button class="btn btn-start" id="startBtn">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            Start Chatting
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="messages-area" id="messagesArea">
+                    <div class="empty-state" id="emptyState">
+                        <div>
+                            <svg class="empty-icon" style="width: 48px; height: 48px; margin: 0 auto;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            <p>Click "Start Chatting" to find a stranger</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-area" id="inputArea" style="display: none;">
+                    <textarea id="messageInput" class="message-input" placeholder="Type a message..." rows="1"></textarea>
+                    <button class="btn-send" id="sendBtn" disabled>
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Socket.IO Client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
