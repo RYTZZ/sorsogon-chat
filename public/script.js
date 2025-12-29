@@ -11,23 +11,33 @@ const EMOJIS = ['😊', '😂', '❤️', '👍', '👏', '🔥', '✨', '🎉',
 // Reaction emojis for messages
 const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
 
-// Vulgar words filter
+// Vulgar words filter (English and Tagalog)
 const VULGAR_WORDS = [
+    // English
     'fuck', 'shit', 'bitch', 'ass', 'asshole', 'damn', 'hell', 'crap', 'dick', 'pussy', 'cock', 'bastard', 'slut', 'whore', 'fag', 'nigger', 'cunt',
+    // Tagalog
     'putang', 'puta', 'gago', 'tarantado', 'tanga', 'bobo', 'ulol', 'sira', 'hayop', 'tangina', 'kantot', 'tamod', 'tite', 'puke', 'bilat', 'burat', 'hinayupak', 'leche', 'peste', 'yawa', 'buwisit'
 ];
 
 // State management
-let currentUser = { username: '', gender: '', lookingFor: '', municipality: '', interests: [], randomMode: false };
+let currentUser = {
+    username: '',
+    gender: '',
+    lookingFor: '',
+    municipality: '',
+    interests: [],
+    randomMode: false
+};
+
 let chatState = 'idle'; // idle, searching, connected
 let selectedInterests = [];
 let currentPartner = null;
 let replyToMessage = null;
 let longPressTimer = null;
 let typingTimeout = null;
-let messageReactions = {}; // {messageId: {emoji: count}}
+let messageReactions = {}; // Store reactions: {messageId: {emoji: count}}
 
-// DOM Elements
+// DOM Elements - Welcome Screen
 const welcomeScreen = document.getElementById('welcomeScreen');
 const chatScreen = document.getElementById('chatScreen');
 const welcomeForm = document.getElementById('welcomeForm');
@@ -38,6 +48,7 @@ const randomModeCheckbox = document.getElementById('randomModeCheckbox');
 const interestsGrid = document.getElementById('interestsGrid');
 const continueBtn = document.getElementById('continueBtn');
 
+// DOM Elements - Chat Screen
 const displayUsername = document.getElementById('displayUsername');
 const displayGender = document.getElementById('displayGender');
 const userAvatarIcon = document.getElementById('userAvatarIcon');
@@ -50,6 +61,7 @@ const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const chatActions = document.getElementById('chatActions');
 const messagesArea = document.getElementById('messagesArea');
+const emptyState = document.getElementById('emptyState');
 const inputArea = document.getElementById('inputArea');
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
@@ -62,6 +74,7 @@ const emojiTrigger = document.getElementById('emojiTrigger');
 const emojiPicker = document.getElementById('emojiPicker');
 const emojiGrid = document.getElementById('emojiGrid');
 
+// Gender selection
 let selectedGender = '';
 let selectedLookingFor = '';
 
@@ -79,6 +92,7 @@ genderOptions.forEach(option => {
 
 lookingForOptions.forEach(option => {
     option.addEventListener('click', () => {
+        // Toggle selection for "Looking For"
         if (option.classList.contains('selected')) {
             option.classList.remove('selected');
             selectedLookingFor = '';
@@ -90,11 +104,14 @@ lookingForOptions.forEach(option => {
     });
 });
 
+// Update continue button state
 function updateContinueButton() {
     continueBtn.disabled = !usernameInput.value.trim() || !selectedGender;
 }
+
 usernameInput.addEventListener('input', updateContinueButton);
 
+// Generate random nickname
 function generateNickname() {
     const adj = NICKNAME_ADJECTIVES[Math.floor(Math.random() * NICKNAME_ADJECTIVES.length)];
     const noun = NICKNAME_NOUNS[Math.floor(Math.random() * NICKNAME_NOUNS.length)];
@@ -102,6 +119,7 @@ function generateNickname() {
     return `${adj}${noun}${num}`;
 }
 
+// Shuffle button handler
 shuffleBtn.addEventListener('click', () => {
     usernameInput.value = generateNickname();
     updateContinueButton();
@@ -125,12 +143,27 @@ function filterMessage(text) {
     return filtered;
 }
 
-// Emoji picker
+// Initialize emoji picker
 function initEmojiPicker() {
-    emojiGrid.innerHTML = EMOJIS.map(emoji => `<div class="emoji-item" data-emoji="${emoji}">${emoji}</div>`).join('');
+    emojiGrid.innerHTML = EMOJIS.map(emoji => 
+        `<div class="emoji-item" data-emoji="${emoji}">${emoji}</div>`
+    ).join('');
 }
-emojiTrigger.addEventListener('click', (e) => { e.stopPropagation(); emojiPicker.classList.toggle('active'); });
-document.addEventListener('click', (e) => { if (!emojiPicker.contains(e.target) && e.target !== emojiTrigger) emojiPicker.classList.remove('active'); });
+
+// Emoji picker toggle
+emojiTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    emojiPicker.classList.toggle('active');
+});
+
+// Close emoji picker when clicking outside
+document.addEventListener('click', (e) => {
+    if (!emojiPicker.contains(e.target) && e.target !== emojiTrigger) {
+        emojiPicker.classList.remove('active');
+    }
+});
+
+// Emoji selection
 emojiGrid.addEventListener('click', (e) => {
     if (e.target.classList.contains('emoji-item')) {
         const emoji = e.target.dataset.emoji;
@@ -141,14 +174,16 @@ emojiGrid.addEventListener('click', (e) => {
         messageInput.focus();
         messageInput.selectionStart = messageInput.selectionEnd = cursorPos + emoji.length;
         emojiPicker.classList.remove('active');
+        
         sendBtn.disabled = !messageInput.value.trim();
     }
 });
 
-// Interests
+// Interest selection handling
 interestsGrid.addEventListener('click', (e) => {
     if (e.target.classList.contains('interest-chip') && !e.target.classList.contains('disabled')) {
         const interest = e.target.dataset.interest;
+        
         if (e.target.classList.contains('active')) {
             selectedInterests = selectedInterests.filter(i => i !== interest);
             e.target.classList.remove('active');
@@ -158,17 +193,23 @@ interestsGrid.addEventListener('click', (e) => {
                 e.target.classList.add('active');
             }
         }
+
         updateInterestChips();
     }
 });
+
 function updateInterestChips() {
     const chips = interestsGrid.querySelectorAll('.interest-chip');
     chips.forEach(chip => {
-        if (!chip.classList.contains('active') && selectedInterests.length >= 3) chip.classList.add('disabled');
-        else if (!chip.classList.contains('active')) chip.classList.remove('disabled');
+        if (!chip.classList.contains('active') && selectedInterests.length >= 3) {
+            chip.classList.add('disabled');
+        } else if (!chip.classList.contains('active')) {
+            chip.classList.remove('disabled');
+        }
     });
 }
 
+// Get avatar icon based on gender
 function getGenderIcon(gender) {
     switch(gender) {
         case 'Boy': return '👦';
@@ -178,14 +219,15 @@ function getGenderIcon(gender) {
     }
 }
 
-// Welcome form
+// Welcome form submission
 welcomeForm.addEventListener('submit', (e) => {
     e.preventDefault();
+    
     const username = usernameInput.value.trim();
     if (!username || !selectedGender) return;
 
     currentUser = {
-        username,
+        username: username,
         gender: selectedGender,
         lookingFor: selectedLookingFor,
         municipality: municipalitySelect.value,
@@ -193,95 +235,190 @@ welcomeForm.addEventListener('submit', (e) => {
         randomMode: randomModeCheckbox.checked
     };
 
+    // Update UI
     displayUsername.textContent = currentUser.username;
     displayGender.textContent = currentUser.gender;
     userAvatarIcon.textContent = getGenderIcon(currentUser.gender);
+    
+    if (currentUser.municipality) {
+        userMunicipality.textContent = currentUser.municipality;
+        userLocation.style.display = 'block';
+    }
 
-    if (currentUser.municipality) { userMunicipality.textContent = currentUser.municipality; userLocation.style.display = 'block'; }
     if (currentUser.interests.length > 0) {
-        userInterests.innerHTML = currentUser.interests.map(i => `<span class="interest-tag">${i}</span>`).join('');
+        userInterests.innerHTML = currentUser.interests.map(interest => 
+            `<span class="interest-tag">${interest}</span>`
+        ).join('');
         userInterests.style.display = 'flex';
     }
 
+    // Switch to chat screen
     welcomeScreen.style.display = 'none';
     chatScreen.style.display = 'block';
 });
 
-// Back button
+// Back button handler
 backBtn.addEventListener('click', () => {
-    if (chatState === 'connected' || chatState === 'searching') socket.emit('stop-chat');
-    chatState = 'idle'; currentPartner = null;
+    if (chatState === 'connected' || chatState === 'searching') {
+        socket.emit('stop-chat');
+    }
+    
+    chatState = 'idle';
+    currentPartner = null;
+    
     chatScreen.style.display = 'none';
     welcomeScreen.style.display = 'flex';
+    
     clearMessages();
 });
 
-// Reaction picker
+// Create reaction picker for message
 function createReactionPicker(messageId) {
     const picker = document.createElement('div');
     picker.className = 'reaction-picker';
     picker.id = `reaction-picker-${messageId}`;
+    
     picker.innerHTML = REACTION_EMOJIS.map(emoji => 
         `<button class="reaction-emoji-btn" data-emoji="${emoji}" data-message-id="${messageId}">${emoji}</button>`
     ).join('');
+    
     return picker;
 }
+
+// Handle reaction click
 function handleReactionClick(messageId, emoji) {
+    // Send reaction to server
     socket.emit('send-reaction', { messageId, emoji });
-    if (!messageReactions[messageId]) messageReactions[messageId] = {};
-    if (!messageReactions[messageId][emoji]) messageReactions[messageId][emoji] = 0;
+    
+    // Update local reactions
+    if (!messageReactions[messageId]) {
+        messageReactions[messageId] = {};
+    }
+    
+    if (!messageReactions[messageId][emoji]) {
+        messageReactions[messageId][emoji] = 0;
+    }
+    
     messageReactions[messageId][emoji]++;
+    
+    // Update reaction display
     updateMessageReactions(messageId);
 }
+
+// Update reaction display on message
 function updateMessageReactions(messageId) {
     const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
     if (!messageDiv) return;
+    
     let reactionsContainer = messageDiv.querySelector('.message-reactions');
     if (!reactionsContainer) {
         reactionsContainer = document.createElement('div');
         reactionsContainer.className = 'message-reactions';
         messageDiv.querySelector('.message-bubble').appendChild(reactionsContainer);
     }
+    
     const reactions = messageReactions[messageId];
-    if (!reactions || Object.keys(reactions).length === 0) { reactionsContainer.innerHTML = ''; return; }
+    if (!reactions || Object.keys(reactions).length === 0) {
+        reactionsContainer.innerHTML = '';
+        return;
+    }
+    
     reactionsContainer.innerHTML = Object.entries(reactions).map(([emoji, count]) => 
-        `<div class="reaction-item"><span class="reaction-emoji">${emoji}</span><span class="reaction-count">${count}</span></div>`
+        `<div class="reaction-item">
+            <span class="reaction-emoji">${emoji}</span>
+            <span class="reaction-count">${count}</span>
+        </div>`
     ).join('');
 }
 
-// Start/Stop buttons
-function createStartButton() { return `<button class="btn btn-start" id="startBtn">Start Chatting</button>`; }
-function createCancelButton() { return `<button class="btn btn-stop" id="stopBtn">Cancel</button>`; }
-function createStopAndNewButtons() { return `<button class="btn btn-stop" id="stopBtn">Stop</button><button class="btn btn-new" id="newMatchBtn">New Match</button>`; }
+// Start chatting button functions
+function createStartButton() {
+    return `
+        <button class="btn btn-start" id="startBtn">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            Start Chatting
+        </button>
+    `;
+}
 
+function createCancelButton() {
+    return `
+        <button class="btn btn-stop" id="stopBtn">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+            </svg>
+            Cancel
+        </button>
+    `;
+}
+
+function createStopAndNewButtons() {
+    return `
+        <button class="btn btn-stop" id="stopBtn">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+            </svg>
+            Stop
+        </button>
+        <button class="btn btn-new" id="newMatchBtn">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            New Match
+        </button>
+    `;
+}
+
+// Event delegation for dynamic buttons
 chatActions.addEventListener('click', (e) => {
     const startBtn = e.target.closest('#startBtn');
     const stopBtn = e.target.closest('#stopBtn');
     const newMatchBtn = e.target.closest('#newMatchBtn');
-    if (startBtn) handleStartChat();
-    else if (stopBtn) handleStopChat();
-    else if (newMatchBtn) handleNewMatch();
+
+    if (startBtn) {
+        handleStartChat();
+    } else if (stopBtn) {
+        handleStopChat();
+    } else if (newMatchBtn) {
+        handleNewMatch();
+    }
 });
 
 function handleStartChat() {
     chatState = 'searching';
     updateUI();
     clearMessages();
-    socket.emit('start-search', currentUser); // sends all preferences
-}
-function handleStopChat() {
-    socket.emit('stop-chat');
-    if (chatState === 'connected') addSystemMessage('You disconnected.');
-    chatState = 'idle'; currentPartner = null; hideTypingIndicator(); updateUI();
-}
-function handleNewMatch() {
-    handleStopChat();
-    setTimeout(handleStartChat, 500);
+    
+    socket.emit('start-search', currentUser);
 }
 
-// UI Updates
+function handleStopChat() {
+    socket.emit('stop-chat');
+    
+    if (chatState === 'connected') {
+        addSystemMessage('You disconnected.');
+    }
+    
+    chatState = 'idle';
+    currentPartner = null;
+    hideTypingIndicator();
+    updateUI();
+}
+
+function handleNewMatch() {
+    handleStopChat();
+    setTimeout(() => {
+        handleStartChat();
+    }, 500);
+}
+
+// Update UI based on chat state
 function updateUI() {
-    switch(chatState) {
+    switch (chatState) {
         case 'idle':
             strangerName.textContent = 'Not Connected';
             statusText.textContent = 'Offline';
@@ -289,7 +426,28 @@ function updateUI() {
             strangerAvatar.textContent = '👤';
             chatActions.innerHTML = createStartButton();
             inputArea.style.display = 'none';
+            
+            if (messagesArea.children.length <= 1) {
+                messagesArea.innerHTML = `
+                    <div class="empty-state" id="emptyState">
+                        <div>
+                            <svg class="empty-icon" style="width: 48px; height: 48px; margin: 0 auto;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            <p>Click "Start Chatting" to find a stranger</p>
+                        </div>
+                    </div>
+                    <div class="typing-indicator-wrapper">
+                        <div class="typing-indicator" id="typingIndicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                `;
+            }
             break;
+
         case 'searching':
             strangerName.textContent = 'Finding stranger...';
             statusText.textContent = 'Searching';
@@ -297,7 +455,29 @@ function updateUI() {
             strangerAvatar.textContent = '🔍';
             chatActions.innerHTML = createCancelButton();
             inputArea.style.display = 'none';
+            
+            messagesArea.innerHTML = `
+                <div class="searching-state">
+                    <div>
+                        <svg class="searching-icon" style="width: 48px; height: 48px; margin: 0 auto;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        <p style="color: #EAF2FF;">Searching for a stranger...</p>
+                        <p style="font-size: 14px; margin-top: 8px; color: #9FB0C8;">
+                            ${currentUser.lookingFor ? `Looking for ${currentUser.lookingFor}` : currentUser.randomMode ? 'Random mode active' : 'Matching by preferences'}
+                        </p>
+                    </div>
+                </div>
+                <div class="typing-indicator-wrapper">
+                    <div class="typing-indicator" id="typingIndicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
             break;
+
         case 'connected':
             strangerName.textContent = currentPartner ? currentPartner.username : 'Stranger';
             statusText.textContent = 'Online';
@@ -309,98 +489,318 @@ function updateUI() {
     }
 }
 
-// Messages
-function clearMessages() { messageReactions = {}; messagesArea.innerHTML = ''; }
+// Message functions
+function clearMessages() {
+    messageReactions = {};
+    messagesArea.innerHTML = `
+        <div class="typing-indicator-wrapper">
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+    `;
+}
+
 function addSystemMessage(text) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'system-message';
     messageDiv.innerHTML = `<span>${text}</span>`;
-    messagesArea.appendChild(messageDiv);
+    
+    const typingWrapper = document.querySelector('.typing-indicator-wrapper');
+    if (typingWrapper && typingWrapper.parentNode) {
+        typingWrapper.parentNode.insertBefore(messageDiv, typingWrapper);
+    } else {
+        messagesArea.appendChild(messageDiv);
+    }
     scrollToBottom();
 }
 
-function addMessage(type, text, sender, messageId, replyTo = null) {
+function addMessage(type, text, sender, messageId) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
     messageDiv.dataset.messageId = messageId || Date.now();
-    let replyHTML = '';
-    if (replyTo) replyHTML = `<div class="message-reply"><span>Replying to: ${escapeHtml(replyTo.text)}</span></div>`;
+    
     messageDiv.innerHTML = `
         <div class="message-bubble">
             <div class="message-sender">${sender}</div>
-            ${replyHTML}
             <div class="message-text">${escapeHtml(text)}</div>
         </div>
     `;
+    
+    // Add long press for reaction picker
     const bubble = messageDiv.querySelector('.message-bubble');
     bubble.addEventListener('mousedown', (e) => handleMessagePress(e, messageDiv));
     bubble.addEventListener('touchstart', (e) => handleMessagePress(e, messageDiv));
     bubble.addEventListener('mouseup', clearMessagePress);
     bubble.addEventListener('touchend', clearMessagePress);
     bubble.addEventListener('mouseleave', clearMessagePress);
-    messagesArea.appendChild(messageDiv);
+    
+    const typingWrapper = document.querySelector('.typing-indicator-wrapper');
+    if (typingWrapper && typingWrapper.parentNode) {
+        typingWrapper.parentNode.insertBefore(messageDiv, typingWrapper);
+    } else {
+        messagesArea.appendChild(messageDiv);
+    }
     scrollToBottom();
 }
 
 function handleMessagePress(e, messageDiv) {
-    longPressTimer = setTimeout(() => { showReactionPicker(messageDiv, messageDiv.dataset.messageId); }, 500);
+    longPressTimer = setTimeout(() => {
+        // Long press detected - show reaction picker
+        const messageId = messageDiv.dataset.messageId;
+        showReactionPicker(messageDiv, messageId);
+    }, 500);
 }
-function clearMessagePress() { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } }
+
+function clearMessagePress() {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+}
+
 function showReactionPicker(messageDiv, messageId) {
-    document.querySelectorAll('.reaction-picker').forEach(p => p.remove());
+    // Remove any existing reaction pickers
+    document.querySelectorAll('.reaction-picker').forEach(picker => picker.remove());
+    
     const picker = createReactionPicker(messageId);
     const bubble = messageDiv.querySelector('.message-bubble');
-    bubble.appendChild(picker); picker.classList.add('active');
-    picker.querySelectorAll('.reaction-emoji-btn').forEach(btn => btn.addEventListener('click', e => {
-        e.stopPropagation();
-        handleReactionClick(btn.dataset.messageId, btn.dataset.emoji);
-        picker.remove();
-    }));
+    bubble.appendChild(picker);
+    picker.classList.add('active');
+    
+    // Add click handlers
+    picker.querySelectorAll('.reaction-emoji-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const emoji = btn.dataset.emoji;
+            const msgId = btn.dataset.messageId;
+            handleReactionClick(msgId, emoji);
+            picker.remove();
+        });
+    });
+    
+    // Close picker when clicking outside
     setTimeout(() => {
-        document.addEventListener('click', function closePicker(e) { if (!picker.contains(e.target)) { picker.remove(); document.removeEventListener('click', closePicker); } });
+        document.addEventListener('click', function closePicker(e) {
+            if (!picker.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', closePicker);
+            }
+        });
     }, 100);
 }
 
-function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-function scrollToBottom() { messagesArea.scrollTop = messagesArea.scrollHeight; }
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-// Typing
-function showTypingIndicator() { typingIndicator.classList.add('active'); scrollToBottom(); }
-function hideTypingIndicator() { typingIndicator.classList.remove('active'); }
+function scrollToBottom() {
+    messagesArea.scrollTop = messagesArea.scrollHeight;
+}
 
-// Send messages
+// Typing indicator functions
+function showTypingIndicator() {
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) {
+        indicator.classList.add('active');
+        scrollToBottom();
+    }
+}
+
+function hideTypingIndicator() {
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) {
+        indicator.classList.remove('active');
+    }
+}
+
+// Message input handling
 messageInput.addEventListener('input', () => {
-    messageInput.style.height = 'auto'; messageInput.style.height = messageInput.scrollHeight + 'px';
+    messageInput.style.height = 'auto';
+    messageInput.style.height = messageInput.scrollHeight + 'px';
+    
     sendBtn.disabled = !messageInput.value.trim();
+    
     if (chatState === 'connected') {
         socket.emit('typing');
+        
         clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => { socket.emit('stop-typing'); }, 1000);
+        typingTimeout = setTimeout(() => {
+            socket.emit('stop-typing');
+        }, 1000);
     }
 });
 
-messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
 sendBtn.addEventListener('click', sendMessage);
 
 function sendMessage() {
     const message = messageInput.value.trim();
     if (!message || chatState !== 'connected') return;
-    const filteredMessage = filterMessage(message);
+
+    // Check for vulgar words
+    if (containsVulgarWords(message)) {
+        addSystemMessage('⚠️ Please keep the conversation respectful. Vulgar language is not allowed.');
+        return;
+    }
+
     const messageId = Date.now();
-    addMessage('user', filteredMessage, currentUser.username, messageId, replyToMessage);
-    socket.emit('send-message', { message: filteredMessage, messageId, replyTo: replyToMessage ? { id: replyToMessage.id, text: replyToMessage.text } : null });
-    messageInput.value = ''; messageInput.style.height = 'auto'; sendBtn.disabled = true; replyingTo.style.display = 'none'; replyToMessage = null;
+    addMessage('you', message, 'You', messageId);
+
+    socket.emit('send-message', { 
+        message,
+        messageId,
+        replyTo: replyToMessage ? replyToMessage.id : null
+    });
+
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
+    sendBtn.disabled = true;
+    socket.emit('stop-typing');
+    hideReplyUI();
 }
 
-// Cancel reply
-cancelReply.addEventListener('click', () => { replyToMessage = null; replyingTo.style.display = 'none'; });
+function hideReplyUI() {
+    replyingTo.style.display = 'none';
+    replyToMessage = null;
+}
 
-// Socket events
-socket.on('match-found', (partner) => { chatState = 'connected'; currentPartner = partner; updateUI(); addSystemMessage(`You are now connected with ${partner.username}.`); });
+cancelReply.addEventListener('click', hideReplyUI);
+
+// Socket event listeners
+socket.on('searching', () => {
+    console.log('Searching for a match...');
+});
+
+socket.on('match-found', (data) => {
+    console.log('Match found:', data);
+    
+    chatState = 'connected';
+    currentPartner = {
+        id: data.partnerId,
+        username: data.partnerUsername,
+        gender: data.partnerGender,
+        municipality: data.partnerMunicipality,
+        interests: data.partnerInterests
+    };
+
+    clearMessages();
+    addSystemMessage('Stranger connected!');
+    addSystemMessage(data.matchReason);
+    
+    updateUI();
+});
+
 socket.on('receive-message', (data) => {
     hideTypingIndicator();
+    
+    // Filter the message for display
     const filteredMessage = filterMessage(data.message);
-    addMessage('stranger', filteredMessage, currentPartner ? currentPartner.username : 'Stranger', data.messageId, data.replyTo);
+    addMessage('stranger', filteredMessage, currentPartner ? currentPartner.username : 'Stranger', data.messageId);
 });
-socket.on('typing', showTypingIndicator);
-socket.on('stop-typing', hideTypingIndicator);
+
+socket.on('receive-reaction', (data) => {
+    const { messageId, emoji } = data;
+    
+    if (!messageReactions[messageId]) {
+        messageReactions[messageId] = {};
+    }
+    
+    if (!messageReactions[messageId][emoji]) {
+        messageReactions[messageId][emoji] = 0;
+    }
+    
+    messageReactions[messageId][emoji]++;
+    updateMessageReactions(messageId);
+});
+
+socket.on('partner-disconnected', () => {
+    addSystemMessage('Stranger disconnected.');
+    chatState = 'idle';
+    currentPartner = null;
+    hideTypingIndicator();
+    updateUI();
+});
+
+socket.on('partner-typing', () => {
+    if (chatState === 'connected') {
+        showTypingIndicator();
+    }
+});
+
+socket.on('partner-stop-typing', () => {
+    hideTypingIndicator();
+});
+
+socket.on('chat-stopped', () => {
+    if (chatState === 'connected') {
+        addSystemMessage('Chat ended.');
+    }
+    chatState = 'idle';
+    currentPartner = null;
+    hideTypingIndicator();
+    updateUI();
+});
+
+socket.on('connect', () => {
+    console.log('Connected to server:', socket.id);
+});
+
+socket.on('disconnect', () => {
+    console.log('Disconnected from server');
+    addSystemMessage('⚠️ Connection lost. Please try again.');
+    chatState = 'idle';
+    currentPartner = null;
+    hideTypingIndicator();
+    updateUI();
+});
+
+/* =========================
+   INITIALIZATION
+========================= */
+
+// Initialize emoji picker on load
+initEmojiPicker();
+
+// Initial UI state
+updateUI();
+
+/* =========================
+   OPTIONAL: Reply feature hook
+   (future-ready, safe to keep)
+========================= */
+
+messagesArea.addEventListener('dblclick', (e) => {
+    const messageDiv = e.target.closest('.message');
+    if (!messageDiv || !messageDiv.classList.contains('stranger')) return;
+
+    const messageText = messageDiv.querySelector('.message-text').textContent;
+    const messageId = messageDiv.dataset.messageId;
+
+    replyToMessage = {
+        id: messageId,
+        text: messageText
+    };
+
+    replyText.textContent = messageText;
+    replyingTo.style.display = 'flex';
+    messageInput.focus();
+});
+
+/* =========================
+   SAFETY: Cleanup reaction pickers
+========================= */
+
+document.addEventListener('scroll', () => {
+    document.querySelectorAll('.reaction-picker').forEach(picker => picker.remove());
+});
