@@ -280,17 +280,19 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
     const menu = document.createElement('div');
     menu.className = 'message-menu';
     menu.style.cssText = `
-        position: absolute;
-        bottom: 100%;
-        left: 0;
+        position: fixed;
+        bottom: auto;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         background: #0B1220;
         border: 1px solid #1E2A44;
         border-radius: 12px;
         padding: 8px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        z-index: 1001;
-        margin-bottom: 8px;
-        min-width: 200px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        max-width: 90vw;
+        width: 100%;
     `;
 
     // Add reactions
@@ -315,14 +317,23 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
             padding: 4px 8px;
             border-radius: 6px;
             transition: all 0.2s;
+            -webkit-user-select: none;
+            user-select: none;
         `;
         btn.onmouseenter = () => btn.style.transform = 'scale(1.3)';
         btn.onmouseleave = () => btn.style.transform = 'scale(1)';
+        btn.ontouchstart = (e) => {
+            e.preventDefault();
+            btn.style.transform = 'scale(1.3)';
+        };
+        btn.ontouchend = () => {
+            btn.style.transform = 'scale(1)';
+        };
         btn.onclick = (e) => {
             e.stopPropagation();
+            e.preventDefault();
             handleReactionClick(messageId, emoji);
-            menu.remove();
-            activeMessageMenu = null;
+            closeMenu();
         };
         reactionsDiv.appendChild(btn);
     });
@@ -342,7 +353,7 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
     replyBtn.textContent = '↩️ Reply';
     replyBtn.style.cssText = `
         width: 100%;
-        padding: 8px 12px;
+        padding: 10px 12px;
         background: #10192E;
         border: 1px solid #1E2A44;
         border-radius: 6px;
@@ -351,6 +362,8 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
         text-align: left;
         font-size: 13px;
         transition: all 0.2s;
+        -webkit-user-select: none;
+        user-select: none;
     `;
     replyBtn.onmouseover = () => {
         replyBtn.style.background = '#1E2A44';
@@ -360,13 +373,22 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
         replyBtn.style.background = '#10192E';
         replyBtn.style.borderColor = '#1E2A44';
     };
+    replyBtn.ontouchstart = (e) => {
+        e.preventDefault();
+        replyBtn.style.background = '#1E2A44';
+        replyBtn.style.borderColor = '#18C3E2';
+    };
+    replyBtn.ontouchend = () => {
+        replyBtn.style.background = '#10192E';
+        replyBtn.style.borderColor = '#1E2A44';
+    };
     replyBtn.onclick = (e) => {
         e.stopPropagation();
+        e.preventDefault();
         replyToMessage = { id: messageId, text: text };
         showReplyUI(text);
         highlightMessage(messageId);
-        menu.remove();
-        activeMessageMenu = null;
+        closeMenu();
     };
     buttonsDiv.appendChild(replyBtn);
 
@@ -382,7 +404,7 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
             editBtn.textContent = '✏️ Edit';
             editBtn.style.cssText = `
                 width: 100%;
-                padding: 8px 12px;
+                padding: 10px 12px;
                 background: #10192E;
                 border: 1px solid #1E2A44;
                 border-radius: 6px;
@@ -391,6 +413,8 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
                 text-align: left;
                 font-size: 13px;
                 transition: all 0.2s;
+                -webkit-user-select: none;
+                user-select: none;
             `;
             editBtn.onmouseover = () => {
                 editBtn.style.background = '#1E2A44';
@@ -400,11 +424,20 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
                 editBtn.style.background = '#10192E';
                 editBtn.style.borderColor = '#1E2A44';
             };
+            editBtn.ontouchstart = (e) => {
+                e.preventDefault();
+                editBtn.style.background = '#1E2A44';
+                editBtn.style.borderColor = '#18C3E2';
+            };
+            editBtn.ontouchend = () => {
+                editBtn.style.background = '#10192E';
+                editBtn.style.borderColor = '#1E2A44';
+            };
             editBtn.onclick = (e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 editMessage(messageId, text);
-                menu.remove();
-                activeMessageMenu = null;
+                closeMenu();
             };
             buttonsDiv.appendChild(editBtn);
 
@@ -413,7 +446,7 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
             deleteBtn.textContent = '🗑️ Delete';
             deleteBtn.style.cssText = `
                 width: 100%;
-                padding: 8px 12px;
+                padding: 10px 12px;
                 background: #10192E;
                 border: 1px solid #1E2A44;
                 border-radius: 6px;
@@ -422,6 +455,8 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
                 text-align: left;
                 font-size: 13px;
                 transition: all 0.2s;
+                -webkit-user-select: none;
+                user-select: none;
             `;
             deleteBtn.onmouseover = () => {
                 deleteBtn.style.background = '#2A1616';
@@ -431,17 +466,33 @@ function createMessageMenu(messageDiv, messageId, text, timestamp, isOwnMessage)
                 deleteBtn.style.background = '#10192E';
                 deleteBtn.style.borderColor = '#1E2A44';
             };
+            deleteBtn.ontouchstart = (e) => {
+                e.preventDefault();
+                deleteBtn.style.background = '#2A1616';
+                deleteBtn.style.borderColor = '#FF6B6B';
+            };
+            deleteBtn.ontouchend = () => {
+                deleteBtn.style.background = '#10192E';
+                deleteBtn.style.borderColor = '#1E2A44';
+            };
             deleteBtn.onclick = (e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 deleteMessage(messageId);
-                menu.remove();
-                activeMessageMenu = null;
+                closeMenu();
             };
             buttonsDiv.appendChild(deleteBtn);
         }
     }
 
     menu.appendChild(buttonsDiv);
+
+    // Close menu function
+    function closeMenu() {
+        menu.remove();
+        activeMessageMenu = null;
+    }
+
     return menu;
 }
 
@@ -751,44 +802,53 @@ function addMessage(type, text, sender, messageId) {
     
     // Add long press event for showing menu
     const bubble = messageDiv.querySelector('.message-bubble');
-    let pressTimer;
+    let pressTimer = null;
+    let isPressed = false;
 
     const handlePressStart = (e) => {
-        e.preventDefault();
+        isPressed = true;
         pressTimer = setTimeout(() => {
-            // Remove existing menu
-            if (activeMessageMenu) {
-                activeMessageMenu.remove();
-            }
-
-            // Create and show new menu
-            const menu = createMessageMenu(messageDiv, messageDiv.dataset.messageId, text, timestamp, type === 'you');
-            bubble.appendChild(menu);
-            activeMessageMenu = menu;
-
-            // Close menu when clicking outside
-            const closeHandler = (event) => {
-                if (!menu.contains(event.target) && !bubble.contains(event.target)) {
-                    menu.remove();
-                    activeMessageMenu = null;
-                    document.removeEventListener('click', closeHandler);
+            if (isPressed) {
+                // Remove existing menu
+                if (activeMessageMenu) {
+                    activeMessageMenu.remove();
                 }
-            };
-            setTimeout(() => {
-                document.addEventListener('click', closeHandler);
-            }, 100);
+
+                // Create and show new menu
+                const menu = createMessageMenu(messageDiv, messageDiv.dataset.messageId, text, timestamp, type === 'you');
+                document.body.appendChild(menu);
+                activeMessageMenu = menu;
+
+                // Close menu when clicking outside
+                const closeHandler = (event) => {
+                    if (activeMessageMenu && !activeMessageMenu.contains(event.target) && !bubble.contains(event.target)) {
+                        activeMessageMenu.remove();
+                        activeMessageMenu = null;
+                        document.removeEventListener('click', closeHandler);
+                        document.removeEventListener('touchstart', closeHandler);
+                    }
+                };
+                setTimeout(() => {
+                    document.addEventListener('click', closeHandler);
+                    document.addEventListener('touchstart', closeHandler);
+                }, 100);
+            }
         }, 500); // 500ms long press
     };
 
     const handlePressEnd = () => {
-        clearTimeout(pressTimer);
+        isPressed = false;
+        if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+        }
     };
 
     bubble.addEventListener('mousedown', handlePressStart);
-    bubble.addEventListener('touchstart', handlePressStart);
+    bubble.addEventListener('touchstart', handlePressStart, { passive: false });
     bubble.addEventListener('mouseup', handlePressEnd);
     bubble.addEventListener('mouseleave', handlePressEnd);
-    bubble.addEventListener('touchend', handlePressEnd);
+    bubble.addEventListener('touchend', handlePressEnd, { passive: false });
     
     const typingWrapper = document.querySelector('.typing-indicator-wrapper');
     if (typingWrapper && typingWrapper.parentNode) {
