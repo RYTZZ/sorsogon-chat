@@ -280,6 +280,9 @@ function addMessage(type, text, messageId, timestamp, replyTo = null) {
         replyHTML = `<div class="reply-preview">↩️ ${escapeHtml(replyTo.substring(0, 50))}${replyTo.length > 50 ? '...' : ''}</div>`;
     }
 
+    const fifteenMin = 15 * 60 * 1000;
+    const canEdit = type === 'you' && (Date.now() - timestamp) < fifteenMin;
+
     div.innerHTML = `
         <div class="message-content">
             <div class="message-bubble">
@@ -288,7 +291,15 @@ function addMessage(type, text, messageId, timestamp, replyTo = null) {
                 <div class="message-time">${formatTime(timestamp)}</div>
                 <div class="message-reactions" id="reactions-${messageId}"></div>
             </div>
-            <button class="message-menu-btn" onclick="showMessageMenu(event, '${messageId}', '${type}')">⋮</button>
+            <div class="message-actions">
+                <button class="message-action-btn" onclick="showReactionPopup(event, '${messageId}')" title="React">
+                    😊
+                </button>
+                <button class="message-action-btn" onclick="replyToMsg('${messageId}', \`${escapeHtml(text).replace(/`/g, '\\`')}\`)" title="Reply">
+                    ↩️
+                </button>
+                ${canEdit ? `<button class="message-action-btn" onclick="showEllipsisMenu(event, '${messageId}')" title="More">⋮</button>` : ''}
+            </div>
         </div>
     `;
 
@@ -311,8 +322,39 @@ function scrollToBottom() {
     messagesArea.scrollTop = messagesArea.scrollHeight;
 }
 
-// Message Context Menu
-window.showMessageMenu = function(event, messageId, messageType) {
+// Show Reaction Popup
+window.showReactionPopup = function(event, messageId) {
+    event.stopPropagation();
+
+    // Remove existing popups
+    document.querySelectorAll('.reaction-popup').forEach(p => p.remove());
+
+    const popup = document.createElement('div');
+    popup.className = 'reaction-popup active';
+    popup.innerHTML = REACTIONS.map(emoji => 
+        `<button class="reaction-emoji-btn" onclick="addReaction('${messageId}', '${emoji}')">${emoji}</button>`
+    ).join('');
+
+    const btn = event.target.closest('.message-action-btn');
+    const btnRect = btn.getBoundingClientRect();
+    
+    document.body.appendChild(popup);
+    
+    popup.style.position = 'fixed';
+    popup.style.top = (btnRect.top - popup.offsetHeight - 8) + 'px';
+    popup.style.left = (btnRect.left - (popup.offsetWidth / 2) + (btnRect.width / 2)) + 'px';
+
+    // Close on click outside
+    setTimeout(() => {
+        document.addEventListener('click', function closePopup() {
+            popup.remove();
+            document.removeEventListener('click', closePopup);
+        });
+    }, 100);
+};
+
+// Show Ellipsis Menu (Edit/Delete only)
+window.showEllipsisMenu = function(event, messageId) {
     event.stopPropagation();
 
     // Remove existing menus
@@ -323,20 +365,8 @@ window.showMessageMenu = function(event, messageId, messageType) {
 
     const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
     const messageText = messageDiv.dataset.text;
-    const messageTimestamp = parseInt(messageDiv.dataset.timestamp);
-    const fifteenMin = 15 * 60 * 1000;
-    const canEdit = messageType === 'you' && (Date.now() - messageTimestamp) < fifteenMin;
 
-    // Reaction picker
     menu.innerHTML = `
-        <div class="reaction-picker-inline">
-            ${REACTIONS.map(emoji => `<button class="reaction-emoji-btn" onclick="addReaction('${messageId}', '${emoji}')">${emoji}</button>`).join('')}
-        </div>
-        <button class="context-menu-item" onclick="replyToMsg('${messageId}', '${escapeHtml(messageText).replace(/'/g, "\\'")}')">
-            <span class="context-menu-icon">↩️</span>
-            <span>Reply</span>
-        </button>
-        ${canEdit ? `
         <button class="context-menu-item" onclick="editMessage('${messageId}')">
             <span class="context-menu-icon">✏️</span>
             <span>Edit</span>
@@ -345,13 +375,13 @@ window.showMessageMenu = function(event, messageId, messageType) {
             <span class="context-menu-icon">🗑️</span>
             <span>Delete</span>
         </button>
-        ` : ''}
     `;
 
+    const btn = event.target.closest('.message-action-btn');
+    const btnRect = btn.getBoundingClientRect();
+    
     document.body.appendChild(menu);
 
-    // Position menu
-    const btnRect = event.target.getBoundingClientRect();
     menu.style.position = 'fixed';
     menu.style.top = Math.min(btnRect.bottom + 5, window.innerHeight - menu.offsetHeight - 10) + 'px';
     menu.style.left = Math.min(btnRect.left - menu.offsetWidth + 30, window.innerWidth - menu.offsetWidth - 10) + 'px';
@@ -363,6 +393,11 @@ window.showMessageMenu = function(event, messageId, messageType) {
             document.removeEventListener('click', closeMenu);
         });
     }, 100);
+};
+
+// Message Context Menu (OLD - REMOVE THIS)
+window.showMessageMenu = function(event, messageId, messageType) {
+    // This function is no longer used
 };
 
 // Add reaction
@@ -378,7 +413,7 @@ window.addReaction = function(messageId, emoji) {
     messageReactions[messageId][emoji]++;
     
     updateReactions(messageId);
-    document.querySelectorAll('.message-context-menu').forEach(m => m.remove());
+    document.querySelectorAll('.reaction-popup').forEach(p => p.remove());
 };
 
 function updateReactions(messageId) {
@@ -403,12 +438,9 @@ window.replyToMsg = function(messageId, messageText) {
     const text = unescaped.value;
 
     replyToMessage = { id: messageId, text };
-    const preview = text.substring(0, 50) + (text.length > 50 ? '...' : '');
-    replyText.textContent = `↩️ ${preview}`;
+    replyText.textContent = text.substring(0, 100) + (text.length > 100 ? '...' : '');
     replyingTo.classList.add('active');
     messageInput.focus();
-    
-    document.querySelectorAll('.message-context-menu').forEach(m => m.remove());
 };
 
 cancelReply.addEventListener('click', () => {
@@ -501,7 +533,8 @@ function sendMessage() {
         message,
         messageId,
         timestamp,
-        replyTo: replyToMessage ? replyToMessage.id : null
+        replyTo: replyToMessage ? replyToMessage.id : null,
+        replyToText: replyToMessage ? replyToMessage.text : null
     });
 
     messageInput.value = '';

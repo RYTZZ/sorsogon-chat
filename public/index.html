@@ -530,6 +530,7 @@
             margin-bottom: 12px;
             align-items: flex-start;
             gap: 8px;
+            position: relative;
         }
 
         .message.you {
@@ -539,8 +540,9 @@
         .message-content {
             max-width: 70%;
             display: flex;
-            align-items: center;
-            gap: 8px;
+            align-items: flex-start;
+            gap: 4px;
+            position: relative;
         }
 
         .message.you .message-content {
@@ -551,6 +553,7 @@
             padding: 10px 14px;
             border-radius: 18px;
             word-wrap: break-word;
+            min-width: 60px;
         }
 
         .message.you .message-bubble {
@@ -576,54 +579,78 @@
             margin-top: 4px;
         }
 
-        .message-menu-btn {
-            width: 28px;
-            height: 28px;
+        /* Message Action Buttons Row */
+        .message-actions {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            position: absolute;
+            top: 0;
+        }
+
+        .message.stranger .message-actions {
+            left: 100%;
+            margin-left: 4px;
+        }
+
+        .message.you .message-actions {
+            right: 100%;
+            margin-right: 4px;
+        }
+
+        .message:hover .message-actions {
+            display: flex;
+        }
+
+        .message-action-btn {
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: transparent;
-            border: none;
+            background: #1E2A44;
+            border: 1px solid #2A3A54;
             color: #9FB0C8;
-            font-size: 18px;
+            font-size: 16px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
-            opacity: 0;
             flex-shrink: 0;
         }
 
-        .message:hover .message-menu-btn {
-            opacity: 1;
-        }
-
-        .message-menu-btn:hover {
-            background: #1E2A44;
+        .message-action-btn:hover {
+            background: #2A3A54;
             color: #18C3E2;
+            transform: scale(1.1);
         }
 
-        /* Context Menu */
-        .message-context-menu {
-            position: fixed;
+        /* Reaction Picker Popup */
+        .reaction-popup {
+            position: absolute;
             background: #0B1220;
             border: 1px solid #1E2A44;
-            border-radius: 12px;
+            border-radius: 24px;
+            padding: 8px 12px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
             z-index: 1000;
-            min-width: 180px;
-            overflow: hidden;
             display: none;
+            gap: 6px;
+            animation: popIn 0.2s ease;
         }
 
-        .message-context-menu.active {
-            display: block;
-        }
-
-        .reaction-picker-inline {
-            padding: 8px;
+        .reaction-popup.active {
             display: flex;
-            gap: 4px;
-            border-bottom: 1px solid #1E2A44;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .reaction-emoji-btn {
@@ -638,7 +665,25 @@
 
         .reaction-emoji-btn:hover {
             background: #1E2A44;
-            transform: scale(1.1);
+            transform: scale(1.2);
+        }
+
+        /* Ellipsis Menu */
+        .message-context-menu {
+            position: fixed;
+            background: #0B1220;
+            border: 1px solid #1E2A44;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            min-width: 160px;
+            overflow: hidden;
+            display: none;
+            animation: popIn 0.2s ease;
+        }
+
+        .message-context-menu.active {
+            display: block;
         }
 
         .context-menu-item {
@@ -684,22 +729,28 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reaction-item:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .reply-preview {
             padding: 6px 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-left: 3px solid #18C3E2;
+            background: rgba(255, 255, 255, 0.15);
+            border-left: 3px solid rgba(255, 255, 255, 0.5);
             border-radius: 4px;
             margin-bottom: 6px;
             font-size: 12px;
-            opacity: 0.8;
+            opacity: 0.9;
         }
 
         .replying-to {
             background: rgba(24, 195, 226, 0.1);
             border-left: 3px solid #18C3E2;
-            padding: 8px 12px;
+            padding: 10px 12px;
             border-radius: 8px;
             margin-bottom: 8px;
             font-size: 13px;
@@ -712,11 +763,32 @@
             display: flex;
         }
 
+        .replying-to-content {
+            flex: 1;
+        }
+
+        .replying-to-label {
+            font-size: 11px;
+            color: #9FB0C8;
+            margin-bottom: 4px;
+        }
+
+        .replying-to-text {
+            color: #EAF2FF;
+        }
+
         .cancel-reply {
             cursor: pointer;
             padding: 4px 8px;
             color: #FF6B00;
             font-weight: bold;
+            font-size: 18px;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .cancel-reply:hover {
+            background: rgba(255, 107, 0, 0.1);
         }
 
         /* Input */
@@ -809,8 +881,15 @@
                 max-width: 85%;
             }
 
-            .message-menu-btn {
+            .message-actions {
+                display: flex !important;
                 opacity: 1;
+            }
+
+            .message-action-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
             }
         }
 
@@ -1029,7 +1108,10 @@
 
                 <div class="input-area" id="inputArea">
                     <div class="replying-to" id="replyingTo">
-                        <span id="replyText">Replying to...</span>
+                        <div class="replying-to-content">
+                            <div class="replying-to-label">Replying to</div>
+                            <div class="replying-to-text" id="replyText">Message text...</div>
+                        </div>
                         <span class="cancel-reply" id="cancelReply">✕</span>
                     </div>
                     <div class="input-wrapper">
