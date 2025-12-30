@@ -2,20 +2,31 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Sorsogon Chat - Connect with Strangers</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: #050B16;
             color: #EAF2FF;
-            overflow-x: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100vh;
         }
 
         /* Connection Status Banner */
@@ -57,20 +68,22 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .welcome-card {
             background: #0B1220;
             border: 1px solid #1E2A44;
             border-radius: 16px;
-            padding: 32px;
+            padding: 24px;
             width: 100%;
             max-width: 500px;
         }
 
         .welcome-header {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 24px;
         }
 
         .icon-circle {
@@ -85,7 +98,7 @@
         }
 
         .welcome-title {
-            font-size: 2rem;
+            font-size: 1.75rem;
             font-weight: bold;
             margin-bottom: 8px;
             color: #EAF2FF;
@@ -93,6 +106,7 @@
 
         .welcome-subtitle {
             color: #9FB0C8;
+            font-size: 14px;
         }
 
         .form-group {
@@ -119,12 +133,21 @@
             border: 1px solid #1E2A44;
             border-radius: 8px;
             color: #EAF2FF;
-            font-size: 14px;
+            font-size: 16px;
             outline: none;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .form-input:focus, .form-select:focus {
             border-color: #18C3E2;
+        }
+
+        .form-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2318C3E2' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 40px;
         }
 
         .shuffle-btn {
@@ -138,9 +161,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+            min-width: 48px;
         }
 
-        .shuffle-btn:hover {
+        .shuffle-btn:active {
             background: #18C3E2;
             color: #050B16;
             border-color: #18C3E2;
@@ -153,7 +178,7 @@
         }
 
         .gender-option {
-            padding: 12px;
+            padding: 12px 8px;
             background: #10192E;
             border: 2px solid #1E2A44;
             border-radius: 8px;
@@ -161,9 +186,10 @@
             cursor: pointer;
             transition: all 0.2s;
             user-select: none;
+            -webkit-user-select: none;
         }
 
-        .gender-option:hover {
+        .gender-option:active {
             border-color: #18C3E2;
         }
 
@@ -190,7 +216,7 @@
         }
 
         .interest-chip {
-            padding: 8px 16px;
+            padding: 8px 12px;
             background: #10192E;
             border: 1px solid #1E2A44;
             border-radius: 20px;
@@ -199,9 +225,11 @@
             cursor: pointer;
             transition: all 0.2s;
             user-select: none;
+            -webkit-user-select: none;
+            white-space: nowrap;
         }
 
-        .interest-chip:hover {
+        .interest-chip:active {
             border-color: #18C3E2;
         }
 
@@ -227,7 +255,7 @@
             cursor: pointer;
         }
 
-        .random-mode-box:hover {
+        .random-mode-box:active {
             border-color: #18C3E2;
         }
 
@@ -248,6 +276,7 @@
             gap: 8px;
             font-weight: 500;
             margin-bottom: 4px;
+            font-size: 14px;
         }
 
         .random-mode-desc {
@@ -266,9 +295,10 @@
             font-weight: 600;
             cursor: pointer;
             transition: background 0.2s;
+            -webkit-appearance: none;
         }
 
-        .btn-primary:hover:not(:disabled) {
+        .btn-primary:active:not(:disabled) {
             background: #FF6B00;
         }
 
@@ -280,40 +310,48 @@
         /* Chat Screen */
         .chat-screen {
             display: none;
-            min-height: 100vh;
-            padding: 20px;
-            padding-top: 40px;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
         }
 
         .chat-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 20px;
-            height: calc(100vh - 60px);
-        }
-
-        /* Left Panel */
-        .left-panel {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Left Panel - Mobile Drawer */
+        .left-panel {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
             overflow-y: auto;
+            padding: 16px;
+            background: #050B16;
+            border-bottom: 1px solid #1E2A44;
+            max-height: 0;
+            transition: max-height 0.3s ease;
+        }
+
+        .left-panel.active {
+            display: flex;
+            max-height: 50vh;
         }
 
         .card {
             background: #0B1220;
             border: 1px solid #1E2A44;
             border-radius: 12px;
-            padding: 20px;
+            padding: 16px;
         }
 
         .user-card-header {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .avatar {
@@ -326,19 +364,23 @@
             justify-content: center;
             color: #18C3E2;
             font-size: 24px;
+            flex-shrink: 0;
         }
 
         .user-info {
             flex: 1;
+            min-width: 0;
         }
 
         .user-name {
             font-weight: 600;
             color: #EAF2FF;
+            font-size: 14px;
+            word-break: break-word;
         }
 
         .user-label {
-            font-size: 14px;
+            font-size: 12px;
             color: #9FB0C8;
         }
 
@@ -356,7 +398,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 14px;
+            font-size: 12px;
             color: #9FB0C8;
             margin-bottom: 8px;
         }
@@ -381,27 +423,28 @@
             gap: 8px;
             margin-bottom: 12px;
             font-weight: 600;
+            font-size: 14px;
         }
 
         .safety-list {
             list-style: none;
+            font-size: 13px;
+            color: #9FB0C8;
         }
 
         .safety-list li {
-            font-size: 14px;
-            color: #9FB0C8;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .announcement-text {
-            font-size: 14px;
+            font-size: 13px;
             color: #9FB0C8;
             line-height: 1.5;
         }
 
         .btn-back {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             background: #1E2A44;
             color: #EAF2FF;
             border: 1px solid #2A3A54;
@@ -414,9 +457,10 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            -webkit-appearance: none;
         }
 
-        .btn-back:hover {
+        .btn-back:active {
             background: #2A3A54;
             border-color: #18C3E2;
         }
@@ -425,24 +469,30 @@
         .right-panel {
             background: #0B1220;
             border: 1px solid #1E2A44;
-            border-radius: 12px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            flex: 1;
+            border-radius: 0;
         }
 
         .chat-header {
-            padding: 16px 20px;
+            padding: 12px 16px;
             border-bottom: 1px solid #1E2A44;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
+            background: #050B16;
+            flex-shrink: 0;
         }
 
         .stranger-info {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex: 1;
+            min-width: 0;
         }
 
         .stranger-avatar {
@@ -454,18 +504,21 @@
             align-items: center;
             justify-content: center;
             font-size: 20px;
+            flex-shrink: 0;
         }
 
         .stranger-name {
             font-weight: 600;
             color: #EAF2FF;
+            font-size: 14px;
+            word-break: break-word;
         }
 
         .stranger-status {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 14px;
+            font-size: 12px;
             color: #9FB0C8;
         }
 
@@ -474,6 +527,7 @@
             height: 8px;
             border-radius: 50%;
             background: #6C7A90;
+            flex-shrink: 0;
         }
 
         .status-dot.searching {
@@ -493,19 +547,25 @@
         .chat-actions {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 10px 12px;
             border: none;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 6px;
             transition: all 0.2s;
+            white-space: nowrap;
+            -webkit-appearance: none;
+            flex-shrink: 0;
         }
 
         .btn-start {
@@ -513,7 +573,7 @@
             color: #EAF2FF;
         }
 
-        .btn-start:hover {
+        .btn-start:active {
             background: #FF6B00;
         }
 
@@ -522,7 +582,7 @@
             color: #EAF2FF;
         }
 
-        .btn-stop:hover {
+        .btn-stop:active {
             background: #4A5568;
         }
 
@@ -531,18 +591,25 @@
             color: #050B16;
         }
 
-        .btn-new:hover {
+        .btn-new:active {
             background: #0FA3C7;
+        }
+
+        .icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
         }
 
         .messages-area {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 16px;
             background: #10192E;
             display: flex;
             flex-direction: column;
             gap: 12px;
+            -webkit-overflow-scrolling: touch;
         }
 
         .typing-indicator-wrapper {
@@ -592,6 +659,7 @@
             justify-content: center;
             text-align: center;
             color: #9FB0C8;
+            font-size: 14px;
         }
 
         .empty-icon {
@@ -619,8 +687,8 @@
 
         .system-message span {
             display: inline-block;
-            font-size: 14px;
-            padding: 6px 16px;
+            font-size: 12px;
+            padding: 6px 12px;
             background: #0B1220;
             color: #9FB0C8;
             border-radius: 16px;
@@ -637,16 +705,16 @@
         }
 
         .message-bubble {
-            max-width: 70%;
-            padding: 12px 16px;
+            max-width: 80%;
+            padding: 10px 12px;
             border-radius: 12px;
             position: relative;
             cursor: pointer;
             user-select: none;
-        }
-
-        .message-bubble:active {
-            transform: scale(0.98);
+            -webkit-user-select: none;
+            word-wrap: break-word;
+            word-break: break-word;
+            font-size: 14px;
         }
 
         .message.you .message-bubble {
@@ -659,19 +727,8 @@
             color: #EAF2FF;
         }
 
-        /* Reply Preview in Message */
-        .message-reply-preview {
-            padding: 8px 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border-left: 3px solid currentColor;
-            border-radius: 4px;
-            margin-bottom: 8px;
-            font-size: 12px;
-            opacity: 0.8;
-        }
-
         .message-sender {
-            font-size: 12px;
+            font-size: 11px;
             opacity: 0.75;
             margin-bottom: 4px;
         }
@@ -694,7 +751,7 @@
             padding: 2px 6px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .reaction-emoji {
@@ -702,40 +759,7 @@
         }
 
         .reaction-count {
-            font-size: 11px;
-        }
-
-        .reaction-picker {
-            display: none;
-            position: absolute;
-            background: #0B1220;
-            border: 1px solid #1E2A44;
-            border-radius: 24px;
-            padding: 8px 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            bottom: 100%;
-            margin-bottom: 8px;
-        }
-
-        .reaction-picker.active {
-            display: flex;
-            gap: 6px;
-        }
-
-        .reaction-emoji-btn {
-            font-size: 24px;
-            cursor: pointer;
-            padding: 6px;
-            border-radius: 50%;
-            transition: all 0.2s;
-            background: transparent;
-            border: none;
-        }
-
-        .reaction-emoji-btn:hover {
-            background: #1E2A44;
-            transform: scale(1.2);
+            font-size: 10px;
         }
 
         .replying-to {
@@ -743,16 +767,19 @@
             padding: 8px 12px;
             border-radius: 8px;
             margin-bottom: 8px;
-            font-size: 13px;
+            font-size: 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 8px;
         }
 
         .cancel-reply {
             cursor: pointer;
             padding: 4px;
             color: #FF6B00;
+            font-weight: bold;
+            flex-shrink: 0;
         }
 
         .emoji-picker {
@@ -767,7 +794,7 @@
             margin-bottom: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             z-index: 1000;
-            max-width: 300px;
+            max-width: 90vw;
         }
 
         .emoji-picker.active {
@@ -776,7 +803,7 @@
 
         .emoji-grid {
             display: grid;
-            grid-template-columns: repeat(8, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 4px;
             max-height: 200px;
             overflow-y: auto;
@@ -789,39 +816,45 @@
             border-radius: 6px;
             transition: all 0.2s;
             text-align: center;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
-        .emoji-item:hover {
+        .emoji-item:active {
             background: #1E2A44;
             transform: scale(1.2);
         }
 
         .input-area {
-            padding: 16px 20px;
+            padding: 12px 16px;
             border-top: 1px solid #1E2A44;
             display: flex;
-            gap: 12px;
-            position: relative;
+            gap: 8px;
+            background: #050B16;
+            flex-shrink: 0;
         }
 
         .input-wrapper {
             flex: 1;
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
         .message-input {
             width: 100%;
-            padding: 12px 50px 12px 16px;
+            padding: 12px 40px 12px 16px;
             background: #10192E;
             border: 1px solid #1E2A44;
             border-radius: 8px;
             color: #EAF2FF;
-            font-size: 14px;
+            font-size: 16px;
             outline: none;
             resize: none;
-            max-height: 120px;
-            min-height: 48px;
+            max-height: 100px;
+            min-height: 44px;
             font-family: inherit;
+            -webkit-appearance: none;
         }
 
         .message-input:focus {
@@ -830,19 +863,21 @@
 
         .emoji-trigger {
             position: absolute;
-            right: 12px;
+            right: 8px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 8px;
             border-radius: 6px;
             transition: all 0.2s;
+            -webkit-appearance: none;
+            z-index: 100;
         }
 
-        .emoji-trigger:hover {
+        .emoji-trigger:active {
             background: #1E2A44;
         }
 
@@ -854,9 +889,16 @@
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-appearance: none;
+            flex-shrink: 0;
+            min-width: 44px;
+            min-height: 44px;
         }
 
-        .btn-send:hover:not(:disabled) {
+        .btn-send:active:not(:disabled) {
             background: #0FA3C7;
         }
 
@@ -866,14 +908,28 @@
             cursor: not-allowed;
         }
 
-        /* Icons */
-        .icon {
-            width: 20px;
-            height: 20px;
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: none;
+            position: absolute;
+            top: 12px;
+            left: 16px;
+            background: none;
+            border: none;
+            color: #18C3E2;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 100;
+            padding: 8px;
+            -webkit-appearance: none;
         }
 
         /* Responsive */
         @media (max-width: 1024px) {
+            .menu-toggle {
+                display: block;
+            }
+
             .chat-container {
                 grid-template-columns: 1fr;
                 height: auto;
@@ -881,41 +937,192 @@
             }
 
             .left-panel {
-                order: 2;
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 64px;
+                max-height: 0;
+                border: none;
+                background: #050B16;
+                border-bottom: 1px solid #1E2A44;
+                overflow: hidden;
+                padding: 16px;
+                z-index: 998;
+            }
+
+            .left-panel.active {
+                max-height: 60vh;
             }
 
             .right-panel {
-                order: 1;
-                min-height: 500px;
+                margin-top: 0;
+                border-radius: 0;
+            }
+
+            .chat-header {
+                padding-left: 50px;
             }
         }
 
         @media (max-width: 640px) {
+            body {
+                font-size: 14px;
+            }
+
             .welcome-card {
-                padding: 24px;
+                padding: 20px;
+                margin: 0 auto;
+                border-radius: 12px;
+                max-width: calc(100% - 20px);
             }
 
-            .chat-actions {
-                flex-wrap: wrap;
+            .welcome-title {
+                font-size: 1.5rem;
             }
 
-            .btn {
-                padding: 8px 12px;
+            .welcome-subtitle {
+                font-size: 13px;
+            }
+
+            .form-label {
+                font-size: 13px;
+            }
+
+            .form-input, .form-select {
+                font-size: 16px;
+                padding: 12px;
+            }
+
+            .gender-options {
+                gap: 6px;
+            }
+
+            .gender-option {
+                padding: 10px 4px;
+            }
+
+            .gender-icon {
+                font-size: 20px;
+            }
+
+            .gender-label {
+                font-size: 12px;
+            }
+
+            .interests-grid {
+                gap: 6px;
+            }
+
+            .interest-chip {
+                padding: 6px 10px;
                 font-size: 12px;
             }
 
             .message-bubble {
                 max-width: 85%;
+                padding: 8px 10px;
+                font-size: 13px;
             }
 
             .emoji-grid {
-                grid-template-columns: repeat(6, 1fr);
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .chat-actions {
+                gap: 4px;
+            }
+
+            .btn {
+                padding: 8px 10px;
+                font-size: 11px;
+                gap: 4px;
+            }
+
+            .icon {
+                width: 16px;
+                height: 16px;
+            }
+
+            .card {
+                padding: 12px;
+            }
+
+            .section-header {
+                font-size: 13px;
+            }
+
+            .safety-list {
+                font-size: 12px;
+            }
+
+            .safety-list li {
+                margin-bottom: 4px;
+            }
+
+            .announcement-text {
+                font-size: 12px;
+            }
+
+            .input-area {
+                padding: 8px 12px;
+                gap: 6px;
+            }
+
+            .message-input {
+                font-size: 16px;
+                min-height: 40px;
+                padding: 10px 36px 10px 12px;
+            }
+
+            .emoji-trigger {
+                font-size: 16px;
+                padding: 6px;
+            }
+
+            .btn-send {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px 12px;
+            }
+
+            .stranger-status {
+                font-size: 11px;
+            }
+
+            .typing-indicator {
+                max-width: 80%;
+                padding: 6px 10px;
+            }
+
+            .system-message span {
+                font-size: 11px;
+                padding: 4px 10px;
+            }
+
+            .messages-area {
+                padding: 12px;
+                gap: 8px;
+            }
+
+            .menu-toggle {
+                font-size: 20px;
+                padding: 6px;
+            }
+        }
+
+        /* iPhone Safe Areas */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(0px, env(safe-area-inset-left));
+                padding-right: max(0px, env(safe-area-inset-right));
+                padding-top: max(0px, env(safe-area-inset-top));
+                padding-bottom: max(0px, env(safe-area-inset-bottom));
             }
         }
 
         /* Scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         ::-webkit-scrollbar-track {
@@ -924,7 +1131,7 @@
 
         ::-webkit-scrollbar-thumb {
             background: #1E2A44;
-            border-radius: 4px;
+            border-radius: 3px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
@@ -946,16 +1153,16 @@
                     </svg>
                 </div>
                 <h1 class="welcome-title">Sorsogon Chat</h1>
-                <p class="welcome-subtitle">Connect with strangers anonymously</p>
+                <p class="welcome-subtitle">Connect with strangers</p>
             </div>
 
             <form id="welcomeForm">
                 <div class="form-group">
                     <label class="form-label">Username</label>
                     <div class="username-input-group">
-                        <input type="text" id="usernameInput" class="form-input" placeholder="Enter a username" maxlength="20" required style="flex: 1;">
-                        <button type="button" class="shuffle-btn" id="shuffleBtn" title="Suggest Random Username">
-                            <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <input type="text" id="usernameInput" class="form-input" placeholder="Enter username" maxlength="20" required style="flex: 1;">
+                        <button type="button" class="shuffle-btn" id="shuffleBtn" title="Random">
+                            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                             </svg>
                         </button>
@@ -981,7 +1188,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Looking for (Optional)</label>
+                    <label class="form-label">Looking for</label>
                     <div class="gender-options" id="lookingForOptions">
                         <div class="gender-option" data-looking="Boy">
                             <div class="gender-icon">👦</div>
@@ -996,13 +1203,12 @@
                             <div class="gender-label">LGBT</div>
                         </div>
                     </div>
-                    <p style="font-size: 12px; color: #9FB0C8; margin-top: 8px;">Leave unselected to match with anyone</p>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Municipality (Optional)</label>
+                    <label class="form-label">Municipality</label>
                     <select id="municipalitySelect" class="form-select">
-                        <option value="">Any Municipality</option>
+                        <option value="">Any</option>
                         <option value="Barcelona">Barcelona</option>
                         <option value="Bulan">Bulan</option>
                         <option value="Bulusan">Bulusan</option>
@@ -1022,7 +1228,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Interests (Optional - Select up to 3)</label>
+                    <label class="form-label">Interests (max 3)</label>
                     <div class="interests-grid" id="interestsGrid">
                         <div class="interest-chip" data-interest="Music">Music</div>
                         <div class="interest-chip" data-interest="Movies">Movies</div>
@@ -1043,13 +1249,8 @@
                     <label class="random-mode-box" for="randomModeCheckbox">
                         <input type="checkbox" id="randomModeCheckbox">
                         <div class="random-mode-content">
-                            <div class="random-mode-title">
-                                <svg class="icon" style="color: #18C3E2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Random Mode</span>
-                            </div>
-                            <p class="random-mode-desc">Connect with any stranger</p>
+                            <div class="random-mode-title">Random Mode</div>
+                            <p class="random-mode-desc">Match with anyone</p>
                         </div>
                     </label>
                 </div>
@@ -1067,9 +1268,7 @@
                 <!-- User Card -->
                 <div class="card">
                     <div class="user-card-header">
-                        <div class="avatar" id="userAvatarIcon">
-                            👤
-                        </div>
+                        <div class="avatar" id="userAvatarIcon">👤</div>
                         <div class="user-info">
                             <div class="user-name" id="displayUsername">User</div>
                             <div class="user-label">You</div>
@@ -1096,27 +1295,14 @@
                         <svg class="icon" style="color: #FFD233;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                         </svg>
-                        <h3>Safety Tips</h3>
+                        <h3>Safety</h3>
                     </div>
                     <ul class="safety-list">
-                        <li>• Never share personal information</li>
-                        <li>• Be respectful to strangers</li>
-                        <li>• No vulgar or offensive language</li>
-                        <li>• Disconnect if uncomfortable</li>
+                        <li>• No personal info</li>
+                        <li>• Be respectful</li>
+                        <li>• No vulgar language</li>
+                        <li>• Disconnect anytime</li>
                     </ul>
-                </div>
-
-                <!-- Announcements -->
-                <div class="card">
-                    <div class="section-header">
-                        <svg class="icon" style="color: #18C3E2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <h3>Announcements</h3>
-                    </div>
-                    <p class="announcement-text">
-                        Welcome to Sorsogon Chat! Connect with strangers from your municipality or with shared interests. Keep conversations respectful!
-                    </p>
                 </div>
 
                 <!-- Back Button -->
@@ -1124,7 +1310,7 @@
                     <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
-                    Back to Main Page
+                    Back
                 </button>
             </div>
 
@@ -1132,10 +1318,9 @@
             <div class="right-panel">
                 <!-- Chat Header -->
                 <div class="chat-header">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
                     <div class="stranger-info">
-                        <div class="stranger-avatar" id="strangerAvatar">
-                            👤
-                        </div>
+                        <div class="stranger-avatar" id="strangerAvatar">👤</div>
                         <div>
                             <div class="stranger-name" id="strangerName">Not Connected</div>
                             <div class="stranger-status">
@@ -1145,28 +1330,14 @@
                         </div>
                     </div>
 
-                    <div class="chat-actions" id="chatActions">
-                        <button class="btn btn-start" id="startBtn">
-                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                            Start Chatting
-                        </button>
-                    </div>
+                    <div class="chat-actions" id="chatActions"></div>
                 </div>
 
                 <!-- Messages Area -->
                 <div class="messages-area" id="messagesArea">
-                    <div class="empty-state" id="emptyState">
-                        <div>
-                            <svg class="empty-icon" style="width: 48px; height: 48px; margin: 0 auto;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                            <p>Click "Start Chatting" to find a stranger</p>
-                        </div>
+                    <div class="empty-state">
+                        <p>Click "Start" to find a stranger</p>
                     </div>
-                    
-                    <!-- Typing Indicator -->
                     <div class="typing-indicator-wrapper">
                         <div class="typing-indicator" id="typingIndicator">
                             <div class="typing-dot"></div>
@@ -1180,10 +1351,10 @@
                 <div class="input-area" id="inputArea" style="display: none;">
                     <div class="input-wrapper">
                         <div class="replying-to" id="replyingTo" style="display: none;">
-                            <span id="replyText">Replying to message...</span>
+                            <span id="replyText">Replying...</span>
                             <span class="cancel-reply" id="cancelReply">✕</span>
                         </div>
-                        <textarea id="messageInput" class="message-input" placeholder="Type a message..." rows="1"></textarea>
+                        <textarea id="messageInput" class="message-input" placeholder="Message..." rows="1"></textarea>
                         <button class="emoji-trigger" id="emojiTrigger">😊</button>
                         <div class="emoji-picker" id="emojiPicker">
                             <div class="emoji-grid" id="emojiGrid"></div>
@@ -1199,8 +1370,24 @@
         </div>
     </div>
 
-    <!-- Socket.IO Client -->
+    <!-- Socket.IO -->
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const leftPanel = document.querySelector('.left-panel');
+
+        menuToggle.addEventListener('click', () => {
+            leftPanel.classList.toggle('active');
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.left-panel') && !e.target.closest('#menuToggle')) {
+                leftPanel.classList.remove('active');
+            }
+        });
+    </script>
 </body>
 </html>
