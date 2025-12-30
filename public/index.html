@@ -165,6 +165,12 @@
             min-width: 48px;
         }
 
+        .shuffle-btn:hover {
+            background: #18C3E2;
+            color: #050B16;
+            border-color: #18C3E2;
+        }
+
         .shuffle-btn:active {
             background: #18C3E2;
             color: #050B16;
@@ -187,6 +193,10 @@
             transition: all 0.2s;
             user-select: none;
             -webkit-user-select: none;
+        }
+
+        .gender-option:hover {
+            border-color: #18C3E2;
         }
 
         .gender-option:active {
@@ -229,6 +239,10 @@
             white-space: nowrap;
         }
 
+        .interest-chip:hover {
+            border-color: #18C3E2;
+        }
+
         .interest-chip:active {
             border-color: #18C3E2;
         }
@@ -253,6 +267,10 @@
             border: 1px solid #1E2A44;
             border-radius: 8px;
             cursor: pointer;
+        }
+
+        .random-mode-box:hover {
+            border-color: #18C3E2;
         }
 
         .random-mode-box:active {
@@ -298,6 +316,10 @@
             -webkit-appearance: none;
         }
 
+        .btn-primary:hover:not(:disabled) {
+            background: #FF6B00;
+        }
+
         .btn-primary:active:not(:disabled) {
             background: #FF6B00;
         }
@@ -312,32 +334,28 @@
             display: none;
             width: 100%;
             height: 100%;
-            flex-direction: column;
+            flex-direction: row;
         }
 
         .chat-container {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 0;
             height: 100%;
             width: 100%;
         }
 
-        /* Left Panel - Mobile Drawer */
+        /* Left Panel - Desktop Sidebar */
         .left-panel {
-            display: none;
+            display: flex;
             flex-direction: column;
             gap: 12px;
             overflow-y: auto;
             padding: 16px;
             background: #050B16;
-            border-bottom: 1px solid #1E2A44;
-            max-height: 0;
-            transition: max-height 0.3s ease;
-        }
-
-        .left-panel.active {
-            display: flex;
-            max-height: 50vh;
+            border-right: 1px solid #1E2A44;
+            max-height: 100%;
+            -webkit-overflow-scrolling: touch;
         }
 
         .card {
@@ -460,6 +478,11 @@
             -webkit-appearance: none;
         }
 
+        .btn-back:hover {
+            background: #2A3A54;
+            border-color: #18C3E2;
+        }
+
         .btn-back:active {
             background: #2A3A54;
             border-color: #18C3E2;
@@ -568,9 +591,17 @@
             flex-shrink: 0;
         }
 
+        .btn:hover {
+            opacity: 0.9;
+        }
+
         .btn-start {
             background: #FF8A1F;
             color: #EAF2FF;
+        }
+
+        .btn-start:hover {
+            background: #FF6B00;
         }
 
         .btn-start:active {
@@ -582,6 +613,10 @@
             color: #EAF2FF;
         }
 
+        .btn-stop:hover {
+            background: #4A5568;
+        }
+
         .btn-stop:active {
             background: #4A5568;
         }
@@ -589,6 +624,10 @@
         .btn-new {
             background: #18C3E2;
             color: #050B16;
+        }
+
+        .btn-new:hover {
+            background: #0FA3C7;
         }
 
         .btn-new:active {
@@ -820,6 +859,11 @@
             -webkit-user-select: none;
         }
 
+        .emoji-item:hover {
+            background: #1E2A44;
+            transform: scale(1.2);
+        }
+
         .emoji-item:active {
             background: #1E2A44;
             transform: scale(1.2);
@@ -877,6 +921,10 @@
             z-index: 100;
         }
 
+        .emoji-trigger:hover {
+            background: #1E2A44;
+        }
+
         .emoji-trigger:active {
             background: #1E2A44;
         }
@@ -896,6 +944,10 @@
             flex-shrink: 0;
             min-width: 44px;
             min-height: 44px;
+        }
+
+        .btn-send:hover:not(:disabled) {
+            background: #0FA3C7;
         }
 
         .btn-send:active:not(:disabled) {
@@ -932,25 +984,26 @@
 
             .chat-container {
                 grid-template-columns: 1fr;
-                height: auto;
-                min-height: calc(100vh - 60px);
             }
 
             .left-panel {
-                position: absolute;
+                position: fixed;
                 left: 0;
                 right: 0;
-                top: 64px;
+                top: 50px;
+                height: 0;
                 max-height: 0;
                 border: none;
                 background: #050B16;
                 border-bottom: 1px solid #1E2A44;
-                overflow: hidden;
+                overflow-y: hidden;
                 padding: 16px;
                 z-index: 998;
+                transition: height 0.3s ease, max-height 0.3s ease;
             }
 
             .left-panel.active {
+                height: auto;
                 max-height: 60vh;
             }
 
@@ -1382,10 +1435,12 @@
             leftPanel.classList.toggle('active');
         });
 
-        // Close menu when clicking outside
+        // Close menu when clicking outside on mobile
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('.left-panel') && !e.target.closest('#menuToggle')) {
-                leftPanel.classList.remove('active');
+            if (window.innerWidth <= 1024) {
+                if (!e.target.closest('.left-panel') && !e.target.closest('#menuToggle')) {
+                    leftPanel.classList.remove('active');
+                }
             }
         });
     </script>
