@@ -468,6 +468,52 @@ function highlightMessage(messageId) {
     }
 }
 
+// Handle reaction click
+function handleReactionClick(messageId, emoji) {
+    // Send reaction to server
+    socket.emit('send-reaction', { messageId, emoji });
+    
+    // Update local reactions
+    if (!messageReactions[messageId]) {
+        messageReactions[messageId] = {};
+    }
+    
+    if (!messageReactions[messageId][emoji]) {
+        messageReactions[messageId][emoji] = 0;
+    }
+    
+    messageReactions[messageId][emoji]++;
+    
+    // Update reaction display
+    updateMessageReactions(messageId);
+}
+
+// Update reaction display on message
+function updateMessageReactions(messageId) {
+    const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (!messageDiv) return;
+    
+    let reactionsContainer = messageDiv.querySelector('.message-reactions');
+    if (!reactionsContainer) {
+        reactionsContainer = document.createElement('div');
+        reactionsContainer.className = 'message-reactions';
+        messageDiv.querySelector('.message-bubble').appendChild(reactionsContainer);
+    }
+    
+    const reactions = messageReactions[messageId];
+    if (!reactions || Object.keys(reactions).length === 0) {
+        reactionsContainer.innerHTML = '';
+        return;
+    }
+    
+    reactionsContainer.innerHTML = Object.entries(reactions).map(([emoji, count]) => 
+        `<div class="reaction-item">
+            <span class="reaction-emoji">${emoji}</span>
+            <span class="reaction-count">${count}</span>
+        </div>`
+    ).join('');
+}
+
 // Edit message
 function editMessage(messageId, currentText) {
     const newText = prompt('Edit message:', currentText);
