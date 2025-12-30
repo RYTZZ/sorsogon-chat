@@ -15,10 +15,11 @@ const VULGAR_WORDS = [
 ];
 
 // State
-let currentUser = { username: '', gender: '', lookingFor: '', randomMode: false };
+let currentUser = { username: '', gender: '', lookingFor: '', municipality: '', interests: [], randomMode: false };
 let chatState = 'idle';
 let selectedGender = '';
 let selectedLookingFor = '';
+let selectedInterests = [];
 let currentPartner = null;
 let replyToMessage = null;
 let messageReactions = {};
@@ -34,6 +35,12 @@ const continueBtn = document.getElementById('continueBtn');
 const displayUsername = document.getElementById('displayUsername');
 const displayGender = document.getElementById('displayGender');
 const userAvatarIcon = document.getElementById('userAvatarIcon');
+const userMunicipality = document.getElementById('userMunicipality');
+const userLocation = document.getElementById('userLocation');
+const userInterests = document.getElementById('userInterests');
+const municipalitySelect = document.getElementById('municipalitySelect');
+const interestsGrid = document.getElementById('interestsGrid');
+const randomModeCheckbox = document.getElementById('randomModeCheckbox');
 const strangerName = document.getElementById('strangerName');
 const strangerAvatar = document.getElementById('strangerAvatar');
 const statusDot = document.getElementById('statusDot');
@@ -95,6 +102,35 @@ function updateContinueButton() {
 
 usernameInput.addEventListener('input', updateContinueButton);
 
+// Interests selection
+interestsGrid.addEventListener('click', (e) => {
+    if (e.target.classList.contains('interest-chip') && !e.target.classList.contains('disabled')) {
+        const interest = e.target.dataset.interest;
+        
+        if (e.target.classList.contains('active')) {
+            selectedInterests = selectedInterests.filter(i => i !== interest);
+            e.target.classList.remove('active');
+        } else {
+            if (selectedInterests.length < 3) {
+                selectedInterests.push(interest);
+                e.target.classList.add('active');
+            }
+        }
+        updateInterestChips();
+    }
+});
+
+function updateInterestChips() {
+    const chips = interestsGrid.querySelectorAll('.interest-chip');
+    chips.forEach(chip => {
+        if (!chip.classList.contains('active') && selectedInterests.length >= 3) {
+            chip.classList.add('disabled');
+        } else if (!chip.classList.contains('active')) {
+            chip.classList.remove('disabled');
+        }
+    });
+}
+
 // Profanity filter
 function containsVulgar(text) {
     const lower = text.toLowerCase();
@@ -120,12 +156,26 @@ welcomeForm.addEventListener('submit', (e) => {
         username: usernameInput.value.trim(),
         gender: selectedGender,
         lookingFor: selectedLookingFor,
-        randomMode: false
+        municipality: municipalitySelect.value,
+        interests: selectedInterests,
+        randomMode: randomModeCheckbox.checked
     };
 
     displayUsername.textContent = currentUser.username;
     displayGender.textContent = currentUser.gender;
     userAvatarIcon.textContent = getGenderIcon(currentUser.gender);
+
+    if (currentUser.municipality) {
+        userMunicipality.textContent = currentUser.municipality;
+        userLocation.style.display = 'block';
+    }
+
+    if (currentUser.interests.length > 0) {
+        userInterests.innerHTML = currentUser.interests.map(interest => 
+            `<span class="interest-tag">${interest}</span>`
+        ).join('');
+        userInterests.style.display = 'flex';
+    }
 
     welcomeScreen.style.display = 'none';
     chatScreen.style.display = 'block';

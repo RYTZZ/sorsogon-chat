@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
-const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -10,22 +9,19 @@ const io = socketIO(server, {
         origin: "*",
         methods: ["GET", "POST"]
     },
-    pingTimeout: 10000,
-    pingInterval: 5000
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ['websocket', 'polling']
 });
 
 const PORT = process.env.PORT || 3000;
-const SESSION_TIMEOUT = 120000; // 2 minutes
 
-// Serve static files
 app.use(express.static('public'));
 
-// In-memory storage
 let waitingUsers = [];
 let activeChats = new Map();
 let userConnections = new Map();
 
-// User class
 class User {
     constructor(socketId, username, gender, lookingFor, municipality, interests, randomMode) {
         this.socketId = socketId;
@@ -40,32 +36,24 @@ class User {
     }
 }
 
-// Improved matching algorithm with gender preference
 function findMatch(user) {
-    if (waitingUsers.length === 0) {
-        return null;
-    }
+    if (waitingUsers.length === 0) return null;
 
     let match = null;
 
-    // If user is in random mode, match with anyone
     if (user.randomMode) {
         match = waitingUsers[0];
     } else {
-        // Priority 1: Match by gender preference if specified
+        // Priority 1: Gender preference
         if (user.lookingFor) {
             match = waitingUsers.find(u => 
                 u.gender === user.lookingFor &&
                 (!u.lookingFor || u.lookingFor === user.gender) &&
                 u.socketId !== user.socketId
             );
-            
-            if (match) {
-                console.log(`  ✓ Gender match: ${user.username} (looking for ${user.lookingFor}) <-> ${match.username} (${match.gender})`);
-            }
         }
 
-        // Priority 2: Match by municipality if both have specified one
+        // Priority 2: Municipality
         if (!match && user.municipality) {
             match = waitingUsers.find(u => 
                 u.municipality && 
@@ -77,19 +65,17 @@ function findMatch(user) {
             );
         }
 
-        // Priority 3: Match by shared interests
+        // Priority 3: Interests
         if (!match && user.interests && user.interests.length > 0) {
             match = waitingUsers.find(u => {
                 if (!u.interests || u.interests.length === 0 || u.randomMode) return false;
-                
                 if (user.lookingFor && u.gender !== user.lookingFor) return false;
                 if (u.lookingFor && user.gender !== u.lookingFor) return false;
-                
                 return u.interests.some(interest => user.interests.includes(interest));
             });
         }
 
-        // Priority 4: Match with anyone compatible
+        // Priority 4: Compatible gender
         if (!match) {
             match = waitingUsers.find(u => {
                 if (user.lookingFor && u.gender !== user.lookingFor) return false;
@@ -98,14 +84,12 @@ function findMatch(user) {
             });
         }
 
-        // Priority 5: No preference matches anyone
+        // Priority 5: No preference - match with anyone
         if (!match && !user.lookingFor) {
             match = waitingUsers.find(u => u.socketId !== user.socketId);
-            console.log('✓ No-preference match');
         }
     }
 
-    // Remove matched user from waiting list
     if (match) {
         waitingUsers = waitingUsers.filter(u => u.socketId !== match.socketId);
     }
@@ -113,23 +97,19 @@ function findMatch(user) {
     return match;
 }
 
-// Get match reason for display
 function getMatchReason(user1, user2) {
     if (user1.randomMode || user2.randomMode) {
         return 'Random connection';
     }
 
-    // Check gender match
     if (user1.lookingFor && user2.gender === user1.lookingFor) {
         return `Matched by gender preference`;
     }
 
-    // Check municipality match
     if (user1.municipality && user2.municipality && user1.municipality === user2.municipality) {
         return `Both from ${user1.municipality}`;
     }
 
-    // Check interests match
     if (user1.interests && user2.interests && user1.interests.length > 0 && user2.interests.length > 0) {
         const sharedInterest = user1.interests.find(i => user2.interests.includes(i));
         if (sharedInterest) {
@@ -140,23 +120,18 @@ function getMatchReason(user1, user2) {
     return 'Random connection';
 }
 
-// Socket.IO connection handling
 io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id}`);
+    console.log(`✓ User connected: ${socket.id}`);
     
     userConnections.set(socket.id, {
         connectedAt: Date.now(),
         lastActivity: Date.now()
     });
 
-    // Handle user starting search
     socket.on('start-search', (userData) => {
-        console.log(`User ${socket.id} (${userData.username}) started searching`);
-        console.log(`  Gender: ${userData.gender}`);
-        console.log(`  Looking for: ${userData.lookingFor || 'Anyone'}`);
-        console.log(`  Municipality: ${userData.municipality || 'Any'}`);
-        console.log(`  Interests: ${userData.interests.length > 0 ? userData.interests.join(', ') : 'None'}`);
-        console.log(`  Random Mode: ${userData.randomMode}`);
+        console.log(`🔍 User ${socket.id} (${userData.username}) searching`);
+        console.log(`  Gender: ${userData.gender}, Looking for: ${userData.lookingFor || 'Anyone'}`);
+        console.log(`  Municipality: ${userData.municipality || 'Any'}, Interests: ${userData.interests?.join(', ') || 'None'}`);
 
         const user = new User(
             socket.id,
@@ -168,11 +143,9 @@ io.on('connection', (socket) => {
             userData.randomMode
         );
 
-        // Try to find a match
         const match = findMatch(user);
 
         if (match) {
-            // Match found!
             user.partnerId = match.socketId;
             match.partnerId = user.socketId;
 
@@ -181,7 +154,6 @@ io.on('connection', (socket) => {
 
             const matchReason = getMatchReason(user, match);
 
-            // Notify both users
             socket.emit('match-found', {
                 partnerId: match.socketId,
                 partnerUsername: match.username,
@@ -200,53 +172,65 @@ io.on('connection', (socket) => {
                 matchReason: matchReason
             });
 
-            console.log(`✓ Match made: ${user.username} (${user.gender}) <-> ${match.username} (${match.gender})`);
-            console.log(`  Reason: ${matchReason}`);
+            console.log(`✓ Match: ${user.username} <-> ${match.username} (${matchReason})`);
         } else {
-            // No match found, add to waiting list
             waitingUsers.push(user);
             socket.emit('searching');
-            console.log(`→ User ${userData.username} added to waiting list`);
-            console.log(`  Total waiting: ${waitingUsers.length}`);
+            console.log(`→ ${userData.username} waiting (Total: ${waitingUsers.length})`);
         }
     });
 
-    // Handle sending messages
     socket.on('send-message', (data) => {
         const partnerId = activeChats.get(socket.id);
-        
         if (partnerId) {
             if (userConnections.has(socket.id)) {
                 userConnections.get(socket.id).lastActivity = Date.now();
             }
 
+            // Get reply text if replyTo is provided
+            let replyToText = null;
+            if (data.replyTo) {
+                replyToText = data.replyToText || null;
+            }
+
             io.to(partnerId).emit('receive-message', {
                 message: data.message,
-                messageId: data.messageId || Date.now(),
-                replyTo: data.replyTo,
-                timestamp: Date.now()
+                messageId: data.messageId,
+                timestamp: data.timestamp,
+                replyToText: replyToText
             });
-            console.log(`Message: ${socket.id} → ${partnerId}`);
-        } else {
-            console.log(`⚠ Message failed: No partner for ${socket.id}`);
         }
     });
 
-    // Handle sending reactions
     socket.on('send-reaction', (data) => {
         const partnerId = activeChats.get(socket.id);
-        
         if (partnerId) {
             io.to(partnerId).emit('receive-reaction', {
                 messageId: data.messageId,
-                emoji: data.emoji,
-                timestamp: Date.now()
+                emoji: data.emoji
             });
-            console.log(`Reaction: ${socket.id} → ${partnerId} (${data.emoji})`);
         }
     });
 
-    // Handle typing indicator
+    socket.on('edit-message', (data) => {
+        const partnerId = activeChats.get(socket.id);
+        if (partnerId) {
+            io.to(partnerId).emit('message-edited', {
+                messageId: data.messageId,
+                newText: data.newText
+            });
+        }
+    });
+
+    socket.on('delete-message', (data) => {
+        const partnerId = activeChats.get(socket.id);
+        if (partnerId) {
+            io.to(partnerId).emit('message-deleted', {
+                messageId: data.messageId
+            });
+        }
+    });
+
     socket.on('typing', () => {
         const partnerId = activeChats.get(socket.id);
         if (partnerId) {
@@ -261,63 +245,30 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle stop chat
     socket.on('stop-chat', () => {
-        console.log(`User ${socket.id} stopped chat`);
-        handleDisconnection(socket.id, true);
+        console.log(`⏹ User ${socket.id} stopped chat`);
+        handleDisconnection(socket.id);
     });
 
-    // Handle disconnect
     socket.on('disconnect', (reason) => {
-        console.log(`User disconnected: ${socket.id} (Reason: ${reason})`);
-        handleDisconnection(socket.id, false);
+        console.log(`✗ User disconnected: ${socket.id} (${reason})`);
+        handleDisconnection(socket.id);
     });
 
-    // Heartbeat
     socket.on('heartbeat', () => {
         if (userConnections.has(socket.id)) {
             userConnections.get(socket.id).lastActivity = Date.now();
         }
     });
 
-    // Edit message
-    socket.on('edit-message', (data) => {
-        const partnerId = activeChats.get(socket.id);
-        if (partnerId) {
-            io.to(partnerId).emit('message-edited', {
-                messageId: data.messageId,
-                newText: data.newText
-            });
-        }
-    });
-
-    // Delete message
-    socket.on('delete-message', (data) => {
-        const partnerId = activeChats.get(socket.id);
-        if (partnerId) {
-            io.to(partnerId).emit('message-deleted', {
-                messageId: data.messageId
-            });
-        }
-    });
-
-    // Handle disconnection logic
-    function handleDisconnection(socketId, voluntary) {
-        // Remove from waiting list
-        const beforeLength = waitingUsers.length;
+    function handleDisconnection(socketId) {
         waitingUsers = waitingUsers.filter(u => u.socketId !== socketId);
-        
-        if (waitingUsers.length < beforeLength) {
-            console.log(`  Removed from waiting list`);
-        }
 
-        // Notify partner
         const partnerId = activeChats.get(socketId);
         if (partnerId) {
             io.to(partnerId).emit('partner-disconnected');
-            activeChats.delete(partnerId);
-            console.log(`  Partner ${partnerId} notified of disconnection`);
             io.to(partnerId).emit('partner-stop-typing');
+            activeChats.delete(partnerId);
         }
 
         activeChats.delete(socketId);
@@ -325,10 +276,10 @@ io.on('connection', (socket) => {
     }
 });
 
-// Cleanup stale connections
+// Session timeout - 10 minutes
 setInterval(() => {
     const now = Date.now();
-    const timeout = SESSION_TIMEOUT; // Use the SESSION_TIMEOUT constant
+    const timeout = 600000; // 10 minutes
     
     userConnections.forEach((data, socketId) => {
         if (now - data.lastActivity > timeout) {
@@ -343,22 +294,24 @@ setInterval(() => {
             activeChats.delete(socketId);
             userConnections.delete(socketId);
             waitingUsers = waitingUsers.filter(u => u.socketId !== socketId);
+            
+            const socket = io.sockets.sockets.get(socketId);
+            if (socket) {
+                socket.disconnect(true);
+            }
         }
     });
-}, 30000);
+}, 60000); // Check every minute
 
-// Health check endpoint
 app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         activeChats: activeChats.size / 2,
         waitingUsers: waitingUsers.length,
-        totalConnections: userConnections.size,
-        timestamp: new Date().toISOString()
+        totalConnections: userConnections.size
     });
 });
 
-// Stats endpoint
 app.get('/stats', (req, res) => {
     const waitingUsersInfo = waitingUsers.map(u => ({
         username: u.username,
@@ -366,7 +319,6 @@ app.get('/stats', (req, res) => {
         lookingFor: u.lookingFor || 'Anyone',
         municipality: u.municipality || 'Any',
         interests: u.interests,
-        randomMode: u.randomMode,
         waitingTime: Math.floor((Date.now() - u.connectedAt) / 1000) + 's'
     }));
 
@@ -378,24 +330,22 @@ app.get('/stats', (req, res) => {
     });
 });
 
-// Start server
 server.listen(PORT, () => {
     console.log(`
-╔═══════════════════════════════════════════╗
-║      Sorsogon Chat Server Started         ║
-╠═══════════════════════════════════════════╣
-║  Port: ${PORT}                             ║
-║  URL: http://localhost:${PORT}            ║
-║                                           ║
-║  Features:                                ║
-║    ✓ Gender-based matching                ║
-║    ✓ Profanity filter                     ║
-║    ✓ Message reactions                    ║
-║    ✓ Typing indicator                     ║
-║                                           ║
-║  Endpoints:                               ║
-║    /health - Health check                 ║
-║    /stats  - Server statistics            ║
-╚═══════════════════════════════════════════╝
+╔════════════════════════════════════════╗
+║     Sorsogon Chat Server Started      ║
+╠════════════════════════════════════════╣
+║  Port: ${PORT}                          
+║  URL: http://localhost:${PORT}         
+║                                        
+║  ✅ Gender matching                    
+║  ✅ Municipality matching              
+║  ✅ Interest matching                  
+║  ✅ Profanity filter                   
+║  ✅ Message reactions                  
+║  ✅ Edit/Delete (15 min)               
+║  ✅ Reply threads                      
+║  ✅ Session timeout (10 min)           
+╚════════════════════════════════════════╝
     `);
 });

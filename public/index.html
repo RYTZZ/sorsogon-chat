@@ -18,7 +18,7 @@
             overflow-x: hidden;
         }
 
-        /* Welcome Screen Styles */
+        /* Welcome Screen */
         .welcome-screen {
             min-height: 100vh;
             display: flex;
@@ -50,6 +50,7 @@
             align-items: center;
             justify-content: center;
             margin: 0 auto 16px;
+            font-size: 32px;
         }
 
         .welcome-title {
@@ -103,6 +104,7 @@
             color: #18C3E2;
             cursor: pointer;
             transition: all 0.2s;
+            font-size: 20px;
         }
 
         .shuffle-btn:hover {
@@ -202,6 +204,23 @@
             accent-color: #18C3E2;
         }
 
+        .random-mode-content {
+            flex: 1;
+        }
+
+        .random-mode-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .random-mode-desc {
+            font-size: 12px;
+            color: #9FB0C8;
+            margin-top: 4px;
+        }
+
         .btn-primary {
             width: 100%;
             padding: 12px;
@@ -224,7 +243,7 @@
             cursor: not-allowed;
         }
 
-        /* Connection Status Banner */
+        /* Connection Status */
         .connection-status {
             position: fixed;
             top: 0;
@@ -235,7 +254,6 @@
             font-weight: 600;
             z-index: 10000;
             display: none;
-            animation: slideDown 0.3s ease;
         }
 
         .connection-status.disconnected {
@@ -248,11 +266,6 @@
             background: #FFD233;
             color: #050B16;
             display: block;
-        }
-
-        @keyframes slideDown {
-            from { transform: translateY(-100%); }
-            to { transform: translateY(0); }
         }
 
         /* Chat Screen */
@@ -271,6 +284,7 @@
             height: calc(100vh - 40px);
         }
 
+        /* Left Sidebar */
         .left-panel {
             display: flex;
             flex-direction: column;
@@ -325,6 +339,54 @@
             font-size: 12px;
             color: #18C3E2;
             margin-top: 4px;
+        }
+
+        .user-location {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #9FB0C8;
+            margin-bottom: 8px;
+        }
+
+        .interest-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .interest-tag {
+            font-size: 12px;
+            padding: 4px 12px;
+            background: #10192E;
+            color: #18C3E2;
+            border-radius: 12px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .safety-list {
+            list-style: none;
+        }
+
+        .safety-list li {
+            font-size: 13px;
+            color: #9FB0C8;
+            margin-bottom: 6px;
+        }
+
+        .announcement-text {
+            font-size: 13px;
+            color: #9FB0C8;
+            line-height: 1.5;
         }
 
         .btn-back {
@@ -384,6 +446,19 @@
             font-size: 20px;
         }
 
+        .stranger-name {
+            font-weight: 600;
+            color: #EAF2FF;
+        }
+
+        .stranger-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #9FB0C8;
+        }
+
         .status-dot {
             width: 8px;
             height: 8px;
@@ -403,6 +478,11 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 8px;
         }
 
         .btn {
@@ -437,7 +517,7 @@
             color: #050B16;
         }
 
-        /* Messages Area */
+        /* Messages */
         .messages-area {
             flex: 1;
             overflow-y: auto;
@@ -456,10 +536,6 @@
             justify-content: flex-end;
         }
 
-        .message.stranger {
-            justify-content: flex-start;
-        }
-
         .message-content {
             max-width: 70%;
             display: flex;
@@ -474,7 +550,6 @@
         .message-bubble {
             padding: 10px 14px;
             border-radius: 18px;
-            position: relative;
             word-wrap: break-word;
         }
 
@@ -501,13 +576,6 @@
             margin-top: 4px;
         }
 
-        .message-edited {
-            font-size: 11px;
-            opacity: 0.6;
-            font-style: italic;
-        }
-
-        /* Message Menu Button (Ellipsis) */
         .message-menu-btn {
             width: 28px;
             height: 28px;
@@ -522,6 +590,7 @@
             justify-content: center;
             transition: all 0.2s;
             opacity: 0;
+            flex-shrink: 0;
         }
 
         .message:hover .message-menu-btn {
@@ -533,9 +602,9 @@
             color: #18C3E2;
         }
 
-        /* Message Context Menu */
+        /* Context Menu */
         .message-context-menu {
-            position: absolute;
+            position: fixed;
             background: #0B1220;
             border: 1px solid #1E2A44;
             border-radius: 12px;
@@ -544,22 +613,32 @@
             min-width: 180px;
             overflow: hidden;
             display: none;
-            animation: popIn 0.2s ease;
         }
 
         .message-context-menu.active {
             display: block;
         }
 
-        @keyframes popIn {
-            from {
-                opacity: 0;
-                transform: scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
+        .reaction-picker-inline {
+            padding: 8px;
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid #1E2A44;
+        }
+
+        .reaction-emoji-btn {
+            font-size: 24px;
+            padding: 6px;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reaction-emoji-btn:hover {
+            background: #1E2A44;
+            transform: scale(1.1);
         }
 
         .context-menu-item {
@@ -588,35 +667,8 @@
         .context-menu-icon {
             font-size: 18px;
             width: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
-        /* Reaction Picker in Menu */
-        .reaction-picker-inline {
-            padding: 8px;
-            display: flex;
-            gap: 4px;
-            border-bottom: 1px solid #1E2A44;
-        }
-
-        .reaction-emoji-btn {
-            font-size: 24px;
-            padding: 6px;
-            border-radius: 6px;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .reaction-emoji-btn:hover {
-            background: #1E2A44;
-            transform: scale(1.1);
-        }
-
-        /* Message Reactions Display */
         .message-reactions {
             display: flex;
             gap: 4px;
@@ -634,7 +686,6 @@
             font-size: 12px;
         }
 
-        /* Reply Preview */
         .reply-preview {
             padding: 6px 10px;
             background: rgba(255, 255, 255, 0.1);
@@ -668,7 +719,7 @@
             font-weight: bold;
         }
 
-        /* Input Area */
+        /* Input */
         .input-area {
             padding: 16px 20px;
             border-top: 1px solid #1E2A44;
@@ -700,7 +751,7 @@
         }
 
         .btn-send {
-            padding: 12px 16px;
+            padding: 12px;
             background: #18C3E2;
             color: #050B16;
             border: none;
@@ -712,6 +763,8 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
+            font-size: 20px;
+            flex-shrink: 0;
         }
 
         .btn-send:hover:not(:disabled) {
@@ -834,6 +887,58 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label class="form-label">Municipality (Optional)</label>
+                    <select id="municipalitySelect" class="form-select">
+                        <option value="">Any Municipality</option>
+                        <option value="Barcelona">Barcelona</option>
+                        <option value="Bulan">Bulan</option>
+                        <option value="Bulusan">Bulusan</option>
+                        <option value="Casiguran">Casiguran</option>
+                        <option value="Castilla">Castilla</option>
+                        <option value="Donsol">Donsol</option>
+                        <option value="Gubat">Gubat</option>
+                        <option value="Irosin">Irosin</option>
+                        <option value="Juban">Juban</option>
+                        <option value="Magallanes">Magallanes</option>
+                        <option value="Matnog">Matnog</option>
+                        <option value="Pilar">Pilar</option>
+                        <option value="Prieto Diaz">Prieto Diaz</option>
+                        <option value="Santa Magdalena">Santa Magdalena</option>
+                        <option value="Sorsogon City">Sorsogon City</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Interests (Optional - Select up to 3)</label>
+                    <div class="interests-grid" id="interestsGrid">
+                        <div class="interest-chip" data-interest="Music">Music</div>
+                        <div class="interest-chip" data-interest="Movies">Movies</div>
+                        <div class="interest-chip" data-interest="Sports">Sports</div>
+                        <div class="interest-chip" data-interest="Gaming">Gaming</div>
+                        <div class="interest-chip" data-interest="Art">Art</div>
+                        <div class="interest-chip" data-interest="Reading">Reading</div>
+                        <div class="interest-chip" data-interest="Travel">Travel</div>
+                        <div class="interest-chip" data-interest="Cooking">Cooking</div>
+                        <div class="interest-chip" data-interest="Photography">Photography</div>
+                        <div class="interest-chip" data-interest="Fitness">Fitness</div>
+                        <div class="interest-chip" data-interest="Technology">Technology</div>
+                        <div class="interest-chip" data-interest="Fashion">Fashion</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="random-mode-box" for="randomModeCheckbox">
+                        <input type="checkbox" id="randomModeCheckbox">
+                        <div class="random-mode-content">
+                            <div class="random-mode-title">
+                                🌍 Random Mode
+                            </div>
+                            <p class="random-mode-desc">Connect with any stranger</p>
+                        </div>
+                    </label>
+                </div>
+
                 <button type="submit" class="btn-primary" id="continueBtn" disabled>Continue</button>
             </form>
         </div>
@@ -842,7 +947,9 @@
     <!-- Chat Screen -->
     <div id="chatScreen" class="chat-screen">
         <div class="chat-container">
+            <!-- Left Sidebar -->
             <div class="left-panel">
+                <!-- User Card -->
                 <div class="card">
                     <div class="user-card-header">
                         <div class="avatar" id="userAvatarIcon">👤</div>
@@ -852,6 +959,37 @@
                             <div class="user-gender" id="displayGender"></div>
                         </div>
                     </div>
+
+                    <div id="userLocation" style="display: none;">
+                        <div class="user-location">
+                            📍 <span id="userMunicipality"></span>
+                        </div>
+                    </div>
+
+                    <div id="userInterests" class="interest-tags" style="display: none;"></div>
+                </div>
+
+                <!-- Safety Tips -->
+                <div class="card">
+                    <div class="section-header">
+                        ⚠️ Safety Tips
+                    </div>
+                    <ul class="safety-list">
+                        <li>• Never share personal info</li>
+                        <li>• Be respectful</li>
+                        <li>• No vulgar language</li>
+                        <li>• Disconnect if uncomfortable</li>
+                    </ul>
+                </div>
+
+                <!-- Announcements -->
+                <div class="card">
+                    <div class="section-header">
+                        📢 Announcements
+                    </div>
+                    <p class="announcement-text">
+                        Welcome to Sorsogon Chat! Connect with strangers. Keep it respectful!
+                    </p>
                 </div>
 
                 <button class="btn-back" id="backBtn">
@@ -859,13 +997,14 @@
                 </button>
             </div>
 
+            <!-- Right Panel -->
             <div class="right-panel">
                 <div class="chat-header">
                     <div class="stranger-info">
                         <div class="stranger-avatar" id="strangerAvatar">👤</div>
                         <div>
-                            <div class="stranger-name" id="strangerName" style="font-weight: 600; color: #EAF2FF;">Not Connected</div>
-                            <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #9FB0C8;">
+                            <div class="stranger-name" id="strangerName">Not Connected</div>
+                            <div class="stranger-status">
                                 <span class="status-dot" id="statusDot"></span>
                                 <span id="statusText">Offline</span>
                             </div>
